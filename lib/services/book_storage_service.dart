@@ -60,4 +60,20 @@ class BookStorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_booksKey);
   }
+
+  // Save book file content (Web only workaround)
+  Future<void> saveBookFile(String fileName, List<int> bytes) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('file_$fileName', base64Encode(bytes));
+  }
+
+  // Load book file content (Web only workaround)
+  Future<List<int>?> loadBookFile(String fileName) async {
+    final prefs = await SharedPreferences.getInstance();
+    final base64String = prefs.getString('file_$fileName');
+    if (base64String != null) {
+      return base64Decode(base64String);
+    }
+    return null;
+  }
 }

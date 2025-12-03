@@ -57,44 +57,48 @@ class BookCard extends StatelessWidget {
             ),
           ),
           // Content
-          Padding(
-            padding: const EdgeInsets.all(DesignSystem.spacingMD),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: DesignSystem.textBase.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: DesignSystem.spacingXS),
-                Text(
-                  author,
-                  style: DesignSystem.textSM.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: DesignSystem.grey600,
-                  ),
-                ),
-                if (progress > 0) ...[
-                  const SizedBox(height: DesignSystem.spacingSM),
-                  // Progress Bar
-                  Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: DesignSystem.grey200,
-                      border: DesignSystem.borderSmall,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(DesignSystem.spacingMD),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: DesignSystem.textBase.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: progress,
-                      child: Container(color: DesignSystem.primaryBlack),
-                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: DesignSystem.spacingXS),
+                  Text(
+                    author,
+                    style: DesignSystem.textSM.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: DesignSystem.grey600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (progress > 0) ...[
+                    const Spacer(),
+                    // Progress Bar
+                    Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: DesignSystem.grey200,
+                        border: DesignSystem.borderSmall,
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: progress,
+                        child: Container(color: DesignSystem.primaryBlack),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],

@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:epub_view/epub_view.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import '../theme/design_system.dart';
 import '../widgets/mobile_header.dart';
 import '../models/book.dart';
+import '../services/book_storage_service.dart';
 
 class BookReaderScreen extends StatefulWidget {
   const BookReaderScreen({super.key});
@@ -11,38 +17,101 @@ class BookReaderScreen extends StatefulWidget {
 }
 
 class _BookReaderScreenState extends State<BookReaderScreen> {
-  int _currentPage = 1;
-  final int _totalPages = 250;
-  bool _isHighlighted = false;
-  bool _isBookmarked = false;
+  final BookStorageService _storageService = BookStorageService();
+  final PdfViewerController _pdfController = PdfViewerController();
 
-  // Sample book content
-  final String _content = '''
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+  bool _isLoading = true;
+  Uint8List? _fileBytes;
+  EpubController? _epubController;
+  Book? _book;
 
-Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+  // Track current EPUB chapter index for navigation
+  int _currentEpubChapterIndex = 0;
 
-Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
-''';
-
-  void _previousPage() {
-    if (_currentPage > 1) {
-      setState(() => _currentPage--);
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_book == null) {
+      final book = ModalRoute.of(context)!.settings.arguments as Book?;
+      if (book != null) {
+        _book = book;
+        _loadFile(book);
+      }
     }
   }
 
-  void _nextPage() {
-    if (_currentPage < _totalPages) {
-      setState(() => _currentPage++);
+  Future<void> _loadFile(Book book) async {
+    setState(() => _isLoading = true);
+
+    try {
+      final isEpub = book.filePath!.toLowerCase().endsWith('.epub');
+
+      if (kIsWeb) {
+        // Web: Load bytes from storage
+        final bytes = await _storageService.loadBookFile(book.filePath!);
+        if (bytes != null) {
+          _fileBytes = Uint8List.fromList(bytes);
+
+          if (isEpub) {
+            _epubController = EpubController(
+              document: EpubDocument.openData(_fileBytes!),
+            );
+          }
+        }
+      } else {
+        // Mobile: Use file path
+        if (isEpub) {
+          final file = File(book.filePath!);
+          final bytes = await file.readAsBytes();
+          _epubController = EpubController(
+            document: EpubDocument.openData(bytes),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error loading book: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _onEpubChapterChanged(value) {
+    if (value != null) {
+      setState(() {
+        _currentEpubChapterIndex = value.chapterNumber - 1;
+      });
+    }
+  }
+
+  void _prevChapter() {
+    if (_book!.filePath!.toLowerCase().endsWith('.pdf')) {
+      _pdfController.previousPage();
+    } else {
+      // EPUB
+      if (_epubController != null && _currentEpubChapterIndex > 0) {
+        _epubController!.jumpTo(index: _currentEpubChapterIndex - 1);
+      }
+    }
+  }
+
+  void _nextChapter() {
+    if (_book!.filePath!.toLowerCase().endsWith('.pdf')) {
+      _pdfController.nextPage();
+    } else {
+      // EPUB
+      if (_epubController != null) {
+        _epubController!.jumpTo(index: _currentEpubChapterIndex + 1);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final book = ModalRoute.of(context)!.settings.arguments as Book?;
-
     return Scaffold(
       backgroundColor: DesignSystem.primaryWhite,
+      drawer: _buildDrawer(),
       body: Container(
         constraints: const BoxConstraints(maxWidth: DesignSystem.maxWidth),
         margin: EdgeInsets.symmetric(
@@ -60,184 +129,145 @@ Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium dolor
           children: [
             // Header
             MobileHeader(
-              title: book?.title ?? 'READING',
+              title: _book?.title ?? 'READING',
               onBack: () => Navigator.of(context).pop(),
-              rightAction: const Icon(
-                Icons.settings,
-                size: DesignSystem.iconSizeLG,
-                color: DesignSystem.primaryBlack,
-              ),
-            ),
-            // Content Area
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(DesignSystem.spacingLG),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 672),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _content,
-                        style: DesignSystem.textBase.copyWith(
-                          fontWeight: FontWeight.w500,
-                          height: 1.75,
-                          color: DesignSystem.primaryBlack,
-                        ),
-                      ),
-                      const SizedBox(height: DesignSystem.spacingLG),
-                      // Highlighted text example
-                      Container(
-                        padding: const EdgeInsets.only(
-                          left: DesignSystem.spacingMD,
-                        ),
-                        decoration: const BoxDecoration(
-                          color: DesignSystem.yellow100,
-                          border: Border(
-                            left: BorderSide(
-                              color: DesignSystem.primaryBlack,
-                              width: 4,
-                            ),
-                          ),
-                        ),
-                        child: Text(
-                          'This is a highlighted passage that stands out from the rest of the text.',
-                          style: DesignSystem.textBase.copyWith(
-                            fontWeight: FontWeight.w500,
-                            height: 1.75,
-                            color: DesignSystem.primaryBlack,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+              rightAction: Builder(
+                builder: (context) => IconButton(
+                  icon: const Icon(Icons.list),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  color: DesignSystem.primaryBlack,
                 ),
               ),
             ),
-            // Reading Controls
-            Container(
-              padding: const EdgeInsets.all(DesignSystem.spacingMD),
-              decoration: const BoxDecoration(
-                border: Border(top: DesignSystem.borderSide),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildControlButton(
-                    icon: Icons.format_quote,
-                    isActive: _isHighlighted,
-                    onTap: () =>
-                        setState(() => _isHighlighted = !_isHighlighted),
-                  ),
-                  const SizedBox(width: DesignSystem.spacingMD),
-                  _buildControlButton(
-                    icon: Icons.bookmark,
-                    isActive: _isBookmarked,
-                    onTap: () => setState(() => _isBookmarked = !_isBookmarked),
-                  ),
-                ],
-              ),
-            ),
-            // Page Controls
-            Container(
-              padding: const EdgeInsets.all(DesignSystem.spacingMD),
-              decoration: const BoxDecoration(
-                color: DesignSystem.grey50,
-                border: Border(top: DesignSystem.borderSide),
-              ),
-              child: Column(
-                children: [
-                  // Progress Bar
-                  Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: DesignSystem.grey200,
-                      border: DesignSystem.borderSmall,
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: _currentPage / _totalPages,
-                      child: Container(color: DesignSystem.primaryBlack),
-                    ),
-                  ),
-                  const SizedBox(height: DesignSystem.spacingMD),
-                  // Page Navigation
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: _previousPage,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: DesignSystem.primaryWhite,
-                            border: DesignSystem.border,
-                          ),
-                          child: const Icon(
-                            Icons.chevron_left,
-                            size: DesignSystem.iconSizeMD,
-                            color: DesignSystem.primaryBlack,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        'PAGE $_currentPage / $_totalPages',
-                        style: DesignSystem.textSM.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _nextPage,
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: DesignSystem.primaryWhite,
-                            border: DesignSystem.border,
-                          ),
-                          child: const Icon(
-                            Icons.chevron_right,
-                            size: DesignSystem.iconSizeMD,
-                            color: DesignSystem.primaryBlack,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            // Content Area
+            Expanded(child: _buildViewer()),
+            // Navigation Bar
+            _buildBottomBar(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildControlButton({
-    required IconData icon,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: isActive
-              ? DesignSystem.primaryBlack
-              : DesignSystem.primaryWhite,
-          border: DesignSystem.border,
-        ),
-        child: Icon(
-          icon,
-          size: DesignSystem.iconSizeMD,
-          color: isActive
-              ? DesignSystem.primaryWhite
-              : DesignSystem.primaryBlack,
-        ),
+  Widget _buildDrawer() {
+    if (_epubController == null) return const SizedBox();
+
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: DesignSystem.primaryBlack),
+            child: Center(
+              child: Text(
+                'Table of Contents',
+                style: TextStyle(
+                  color: DesignSystem.primaryWhite,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Use Next/Prev buttons to navigate'),
+            leading: const Icon(Icons.info_outline),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildBottomBar() {
+    return Container(
+      padding: const EdgeInsets.all(DesignSystem.spacingMD),
+      decoration: const BoxDecoration(
+        color: DesignSystem.primaryWhite,
+        border: Border(top: DesignSystem.borderSide),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          ElevatedButton.icon(
+            onPressed: _prevChapter,
+            icon: const Icon(
+              Icons.chevron_left,
+              color: DesignSystem.primaryWhite,
+            ),
+            label: const Text(
+              'PREV',
+              style: TextStyle(color: DesignSystem.primaryWhite),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: DesignSystem.primaryBlack,
+              shape: const RoundedRectangleBorder(),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: _nextChapter,
+            icon: const Icon(
+              Icons.chevron_right,
+              color: DesignSystem.primaryWhite,
+            ),
+            label: const Text(
+              'NEXT',
+              style: TextStyle(color: DesignSystem.primaryWhite),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: DesignSystem.primaryBlack,
+              shape: const RoundedRectangleBorder(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewer() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: DesignSystem.primaryBlack),
+      );
+    }
+
+    if (_book == null || _book!.filePath == null) {
+      return const Center(child: Text("No book loaded"));
+    }
+
+    final isPdf = _book!.filePath!.toLowerCase().endsWith('.pdf');
+    final isEpub = _book!.filePath!.toLowerCase().endsWith('.epub');
+
+    if (isPdf) {
+      if (kIsWeb) {
+        if (_fileBytes != null) {
+          return SfPdfViewer.memory(_fileBytes!, controller: _pdfController);
+        } else {
+          return const Center(
+            child: Text(
+              "PDF content not found in storage.\nTry adding the book again.",
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+      } else {
+        return SfPdfViewer.file(
+          File(_book!.filePath!),
+          controller: _pdfController,
+        );
+      }
+    } else if (isEpub) {
+      if (_epubController != null) {
+        return EpubView(
+          controller: _epubController!,
+          onChapterChanged: _onEpubChapterChanged,
+        );
+      } else {
+        return const Center(
+          child: Text("Could not load EPUB.", textAlign: TextAlign.center),
+        );
+      }
+    }
+
+    return const Center(child: Text("Unsupported file format"));
   }
 }

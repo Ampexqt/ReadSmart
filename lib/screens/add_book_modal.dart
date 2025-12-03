@@ -23,6 +23,7 @@ class _AddBookModalState extends State<AddBookModal> {
   final BookStorageService _storageService = BookStorageService();
   File? _eBookFile;
   String? _eBookFileName; // Store filename for web
+  List<int>? _fileBytes; // Store bytes for web
   File? _coverImage;
   String? _coverImagePath; // Store path for web
   Color? _selectedColor;
@@ -46,6 +47,7 @@ class _AddBookModalState extends State<AddBookModal> {
         // Web platform - path is unavailable, use name only
         setState(() {
           _eBookFileName = result.files.single.name;
+          _fileBytes = result.files.single.bytes;
           // Auto-fill title from filename if empty
           if (_titleController.text.isEmpty) {
             final fileName = result.files.single.name;
@@ -124,6 +126,11 @@ class _AddBookModalState extends State<AddBookModal> {
       );
 
       await _storageService.addBook(book);
+
+      // Save file content for web
+      if (kIsWeb && _fileBytes != null && _eBookFileName != null) {
+        await _storageService.saveBookFile(_eBookFileName!, _fileBytes!);
+      }
 
       if (mounted) {
         Navigator.of(context).pop(true); // Return true to indicate success
