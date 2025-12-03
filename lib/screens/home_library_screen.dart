@@ -191,6 +191,7 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
                         author: _books[index].author,
                         progress: _books[index].progress,
                         coverColor: _books[index].coverColor,
+                        coverImagePath: _books[index].coverImagePath,
                         onTap: () {
                           Navigator.of(
                             context,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import '../theme/design_system.dart';
 import '../widgets/brutal_modal.dart';
@@ -21,7 +22,9 @@ class _AddBookModalState extends State<AddBookModal> {
   final TextEditingController _authorController = TextEditingController();
   final BookStorageService _storageService = BookStorageService();
   File? _eBookFile;
+  String? _eBookFileName; // Store filename for web
   File? _coverImage;
+  String? _coverImagePath; // Store path for web
   Color? _selectedColor;
   bool _isSaving = false;
 
@@ -38,19 +41,37 @@ class _AddBookModalState extends State<AddBookModal> {
       allowedExtensions: ['epub', 'pdf', 'mobi'],
     );
 
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _eBookFile = File(result.files.single.path!);
-        // Auto-fill title from filename if empty
-        if (_titleController.text.isEmpty) {
-          final fileName = result.files.single.name;
-          final titleWithoutExtension = fileName.substring(
-            0,
-            fileName.lastIndexOf('.'),
-          );
-          _titleController.text = titleWithoutExtension;
-        }
-      });
+    if (result != null) {
+      if (kIsWeb) {
+        // Web platform - path is unavailable, use name only
+        setState(() {
+          _eBookFileName = result.files.single.name;
+          // Auto-fill title from filename if empty
+          if (_titleController.text.isEmpty) {
+            final fileName = result.files.single.name;
+            final titleWithoutExtension = fileName.substring(
+              0,
+              fileName.lastIndexOf('.'),
+            );
+            _titleController.text = titleWithoutExtension;
+          }
+        });
+      } else if (result.files.single.path != null) {
+        // Mobile/Desktop - path is available
+        setState(() {
+          _eBookFile = File(result.files.single.path!);
+          _eBookFileName = result.files.single.name;
+          // Auto-fill title from filename if empty
+          if (_titleController.text.isEmpty) {
+            final fileName = result.files.single.name;
+            final titleWithoutExtension = fileName.substring(
+              0,
+              fileName.lastIndexOf('.'),
+            );
+            _titleController.text = titleWithoutExtension;
+          }
+        });
+      }
     }
   }
 
@@ -60,7 +81,13 @@ class _AddBookModalState extends State<AddBookModal> {
 
     if (pickedFile != null) {
       setState(() {
-        _coverImage = File(pickedFile.path);
+        if (kIsWeb) {
+          _coverImagePath = pickedFile.path;
+          _coverImage = null;
+        } else {
+          _coverImage = File(pickedFile.path);
+          _coverImagePath = null;
+        }
       });
     }
   }
@@ -77,7 +104,7 @@ class _AddBookModalState extends State<AddBookModal> {
       return;
     }
 
-    if (_eBookFile == null) {
+    if (_eBookFileName == null) {
       _showError('Please select an ebook file');
       return;
     }
@@ -89,8 +116,8 @@ class _AddBookModalState extends State<AddBookModal> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text.trim(),
         author: _authorController.text.trim(),
-        filePath: _eBookFile!.path,
-        coverImagePath: _coverImage?.path,
+        filePath: _eBookFile?.path ?? _eBookFileName!,
+        coverImagePath: _coverImage?.path ?? _coverImagePath,
         coverColor: _selectedColor ?? DesignSystem.grey200,
         dateAdded: DateTime.now(),
         progress: 0.0,
@@ -135,7 +162,6 @@ class _AddBookModalState extends State<AddBookModal> {
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           // eBook File Upload
           GestureDetector(
@@ -153,21 +179,22 @@ class _AddBookModalState extends State<AddBookModal> {
               child: Column(
                 children: [
                   Icon(
-                    _eBookFile != null ? Icons.description : Icons.upload_file,
+                    _eBookFileName != null
+                        ? Icons.description
+                        : Icons.upload_file,
                     size: DesignSystem.iconSize2XL,
                     color: DesignSystem.primaryBlack,
                   ),
                   const SizedBox(height: DesignSystem.spacingMD),
                   Text(
-                    _eBookFile != null
-                        ? _eBookFile!.path.split(Platform.pathSeparator).last
-                        : 'UPLOAD EBOOK FILE',
+                    _eBookFileName ?? 'UPLOAD EBOOK FILE',
                     style: DesignSystem.textBase.copyWith(
                       fontWeight: FontWeight.w700,
                       color: DesignSystem.primaryBlack,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  if (_eBookFile == null) ...[
+                  if (_eBookFileName == null) ...[
                     const SizedBox(height: DesignSystem.spacingXS),
                     Text(
                       'EPUB, PDF, MOBI',
@@ -181,36 +208,49 @@ class _AddBookModalState extends State<AddBookModal> {
               ),
             ),
           ),
-          const SizedBox(height: DesignSystem.spacingLG),
-          // Cover Photo Preview
-          AspectRatio(
-            aspectRatio: DesignSystem.bookCoverAspectRatio,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: _selectedColor ?? DesignSystem.grey200,
-                border: DesignSystem.border,
-              ),
-              child: _coverImage != null
-                  ? Image.file(_coverImage!, fit: BoxFit.cover)
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image,
-                          size: DesignSystem.iconSize3XL,
-                          color: DesignSystem.primaryBlack,
-                        ),
-                        const SizedBox(height: DesignSystem.spacingSM),
-                        Text(
-                          'NO PHOTO',
-                          style: DesignSystem.textSM.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
+          const SizedBox(height: DesignSystem.spacingMD),
+          // Form Fields - MOVED UP
+          BrutalInput(
+            label: 'TITLE',
+            controller: _titleController,
+            hintText: 'Enter book title',
+          ),
+          const SizedBox(height: DesignSystem.spacingMD),
+          BrutalInput(
+            label: 'AUTHOR',
+            controller: _authorController,
+            hintText: 'Enter author name',
+          ),
+          const SizedBox(height: DesignSystem.spacingMD),
+          // Cover Photo Preview - SMALLER
+          Container(
+            height: 120,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: _selectedColor ?? DesignSystem.grey200,
+              border: DesignSystem.border,
             ),
+            child: _coverImage != null
+                ? Image.file(_coverImage!, fit: BoxFit.cover)
+                : (_coverImagePath != null
+                      ? Image.network(_coverImagePath!, fit: BoxFit.cover)
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.image,
+                              size: 40,
+                              color: DesignSystem.primaryBlack,
+                            ),
+                            const SizedBox(height: DesignSystem.spacingXS),
+                            Text(
+                              'NO PHOTO',
+                              style: DesignSystem.textXS.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        )),
           ),
           const SizedBox(height: DesignSystem.spacingMD),
           // Add Photo Button
@@ -225,20 +265,7 @@ class _AddBookModalState extends State<AddBookModal> {
             ),
             onPressed: _pickCoverImage,
           ),
-          const SizedBox(height: DesignSystem.spacingLG),
-          // Form Fields
-          BrutalInput(
-            label: 'TITLE',
-            controller: _titleController,
-            hintText: 'Enter book title',
-          ),
           const SizedBox(height: DesignSystem.spacingMD),
-          BrutalInput(
-            label: 'AUTHOR',
-            controller: _authorController,
-            hintText: 'Enter author name',
-          ),
-          const SizedBox(height: DesignSystem.spacingLG),
           // Color Selector
           Text('COVER COLOR', style: DesignSystem.labelStyle),
           const SizedBox(height: DesignSystem.spacingSM),
@@ -249,7 +276,7 @@ class _AddBookModalState extends State<AddBookModal> {
                 child: GestureDetector(
                   onTap: () => setState(() => _selectedColor = color),
                   child: Container(
-                    height: 48,
+                    height: 40,
                     margin: EdgeInsets.only(
                       right: color != _coverColors.last
                           ? DesignSystem.spacingSM
@@ -259,7 +286,7 @@ class _AddBookModalState extends State<AddBookModal> {
                       color: color,
                       border: Border.all(
                         color: DesignSystem.primaryBlack,
-                        width: isSelected ? 4 : DesignSystem.borderWidth,
+                        width: isSelected ? 3 : DesignSystem.borderWidth,
                       ),
                     ),
                   ),

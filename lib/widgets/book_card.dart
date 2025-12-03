@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/design_system.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'brutal_card.dart';
 
 class BookCard extends StatelessWidget {
@@ -38,12 +40,19 @@ class BookCard extends StatelessWidget {
                 border: const Border(bottom: DesignSystem.borderSide),
               ),
               child: coverImagePath != null
-                  ? Image.asset(
-                      coverImagePath!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildPlaceholderIcon(),
-                    )
+                  ? (kIsWeb
+                        ? Image.network(
+                            coverImagePath!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildPlaceholderIcon(),
+                          )
+                        : Image.file(
+                            File(coverImagePath!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildPlaceholderIcon(),
+                          ))
                   : _buildPlaceholderIcon(),
             ),
           ),
