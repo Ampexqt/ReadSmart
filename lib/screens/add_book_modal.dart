@@ -6,6 +6,8 @@ import '../theme/design_system.dart';
 import '../widgets/brutal_modal.dart';
 import '../widgets/brutal_button.dart';
 import '../widgets/brutal_input.dart';
+import '../models/book.dart';
+import '../services/book_storage_service.dart';
 
 class AddBookModal extends StatefulWidget {
   const AddBookModal({super.key});
@@ -17,9 +19,11 @@ class AddBookModal extends StatefulWidget {
 class _AddBookModalState extends State<AddBookModal> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _authorController = TextEditingController();
+  final BookStorageService _storageService = BookStorageService();
   File? _eBookFile;
   File? _coverImage;
   Color? _selectedColor;
+  bool _isSaving = false;
 
   final List<Color> _coverColors = [
     DesignSystem.grey200,
@@ -37,6 +41,15 @@ class _AddBookModalState extends State<AddBookModal> {
     if (result != null && result.files.single.path != null) {
       setState(() {
         _eBookFile = File(result.files.single.path!);
+        // Auto-fill title from filename if empty
+        if (_titleController.text.isEmpty) {
+          final fileName = result.files.single.name;
+          final titleWithoutExtension = fileName.substring(
+            0,
+            fileName.lastIndexOf('.'),
+          );
+          _titleController.text = titleWithoutExtension;
+        }
       });
     }
   }
@@ -52,6 +65,57 @@ class _AddBookModalState extends State<AddBookModal> {
     }
   }
 
+  Future<void> _saveBook() async {
+    // Validate inputs
+    if (_titleController.text.trim().isEmpty) {
+      _showError('Please enter a book title');
+      return;
+    }
+
+    if (_authorController.text.trim().isEmpty) {
+      _showError('Please enter an author name');
+      return;
+    }
+
+    if (_eBookFile == null) {
+      _showError('Please select an ebook file');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final book = Book(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: _titleController.text.trim(),
+        author: _authorController.text.trim(),
+        filePath: _eBookFile!.path,
+        coverImagePath: _coverImage?.path,
+        coverColor: _selectedColor ?? DesignSystem.grey200,
+        dateAdded: DateTime.now(),
+        progress: 0.0,
+      );
+
+      await _storageService.addBook(book);
+
+      if (mounted) {
+        Navigator.of(context).pop(true); // Return true to indicate success
+      }
+    } catch (e) {
+      _showError('Failed to save book: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BrutalModal(
@@ -61,15 +125,12 @@ class _AddBookModalState extends State<AddBookModal> {
         BrutalButton(
           text: 'CANCEL',
           variant: BrutalButtonVariant.outline,
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
         ),
         const SizedBox(width: DesignSystem.spacingMD),
         BrutalButton(
-          text: 'ADD BOOK',
-          onPressed: () {
-            // Handle add book logic
-            Navigator.of(context).pop();
-          },
+          text: _isSaving ? 'SAVING...' : 'ADD BOOK',
+          onPressed: _isSaving ? null : _saveBook,
         ),
       ],
       child: Column(
@@ -99,7 +160,7 @@ class _AddBookModalState extends State<AddBookModal> {
                   const SizedBox(height: DesignSystem.spacingMD),
                   Text(
                     _eBookFile != null
-                        ? _eBookFile!.path.split('/').last
+                        ? _eBookFile!.path.split(Platform.pathSeparator).last
                         : 'UPLOAD EBOOK FILE',
                     style: DesignSystem.textBase.copyWith(
                       fontWeight: FontWeight.w700,

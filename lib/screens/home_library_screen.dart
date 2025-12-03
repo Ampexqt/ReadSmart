@@ -6,6 +6,7 @@ import '../widgets/brutal_input.dart';
 import '../widgets/book_card.dart';
 import '../widgets/brutal_card.dart';
 import '../models/book.dart';
+import '../services/book_storage_service.dart';
 import 'add_book_modal.dart';
 
 class HomeLibraryScreen extends StatefulWidget {
@@ -17,39 +18,35 @@ class HomeLibraryScreen extends StatefulWidget {
 
 class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<Book> _books = [
-    Book(
-      id: '1',
-      title: 'The Great Gatsby',
-      author: 'F. Scott Fitzgerald',
-      progress: 0.65,
-      coverColor: DesignSystem.grey200,
-    ),
-    Book(
-      id: '2',
-      title: '1984',
-      author: 'George Orwell',
-      progress: 0.30,
-      coverColor: DesignSystem.grey300,
-    ),
-    Book(
-      id: '3',
-      title: 'To Kill a Mockingbird',
-      author: 'Harper Lee',
-      progress: 0.0,
-      coverColor: DesignSystem.grey200,
-    ),
-    Book(
-      id: '4',
-      title: 'Pride and Prejudice',
-      author: 'Jane Austen',
-      progress: 1.0,
-      coverColor: DesignSystem.grey300,
-    ),
-  ];
+  final BookStorageService _storageService = BookStorageService();
+  List<Book> _books = [];
+  bool _isLoading = true;
 
-  void _showAddBookModal() {
-    showDialog(context: context, builder: (context) => const AddBookModal());
+  @override
+  void initState() {
+    super.initState();
+    _loadBooks();
+  }
+
+  Future<void> _loadBooks() async {
+    setState(() => _isLoading = true);
+    final books = await _storageService.loadBooks();
+    setState(() {
+      _books = books;
+      _isLoading = false;
+    });
+  }
+
+  void _showAddBookModal() async {
+    final result = await showDialog(
+      context: context,
+      builder: (context) => const AddBookModal(),
+    );
+
+    // Reload books if a new book was added
+    if (result == true) {
+      _loadBooks();
+    }
   }
 
   @override
@@ -144,27 +141,63 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
             ),
             // Book Grid
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(DesignSystem.spacingMD),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: DesignSystem.spacingMD,
-                  mainAxisSpacing: DesignSystem.spacingMD,
-                  childAspectRatio: 0.7,
-                ),
-                itemCount: _books.length,
-                itemBuilder: (context, index) => BookCard(
-                  title: _books[index].title,
-                  author: _books[index].author,
-                  progress: _books[index].progress,
-                  coverColor: _books[index].coverColor,
-                  onTap: () {
-                    Navigator.of(
-                      context,
-                    ).pushNamed('/reader', arguments: _books[index]);
-                  },
-                ),
-              ),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: DesignSystem.primaryBlack,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  : _books.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.book_outlined,
+                            size: 64,
+                            color: DesignSystem.grey400,
+                          ),
+                          const SizedBox(height: DesignSystem.spacingMD),
+                          Text(
+                            'NO BOOKS YET',
+                            style: DesignSystem.textLG.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: DesignSystem.grey600,
+                            ),
+                          ),
+                          const SizedBox(height: DesignSystem.spacingSM),
+                          Text(
+                            'Tap the + button to add your first book',
+                            style: DesignSystem.textSM.copyWith(
+                              color: DesignSystem.grey500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(DesignSystem.spacingMD),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: DesignSystem.spacingMD,
+                            mainAxisSpacing: DesignSystem.spacingMD,
+                            childAspectRatio: 0.7,
+                          ),
+                      itemCount: _books.length,
+                      itemBuilder: (context, index) => BookCard(
+                        title: _books[index].title,
+                        author: _books[index].author,
+                        progress: _books[index].progress,
+                        coverColor: _books[index].coverColor,
+                        onTap: () {
+                          Navigator.of(
+                            context,
+                          ).pushNamed('/reader', arguments: _books[index]);
+                        },
+                      ),
+                    ),
             ),
           ],
         ),

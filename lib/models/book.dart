@@ -20,6 +20,61 @@ class Book {
     this.filePath,
     this.dateAdded,
   });
+
+  // Convert Book to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'author': author,
+      'progress': progress,
+      'coverImagePath': coverImagePath,
+      'coverColor': coverColor?.value,
+      'filePath': filePath,
+      'dateAdded': dateAdded?.toIso8601String(),
+    };
+  }
+
+  // Create Book from JSON
+  factory Book.fromJson(Map<String, dynamic> json) {
+    return Book(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      author: json['author'] as String,
+      progress: (json['progress'] as num?)?.toDouble() ?? 0.0,
+      coverImagePath: json['coverImagePath'] as String?,
+      coverColor: json['coverColor'] != null
+          ? Color(json['coverColor'] as int)
+          : null,
+      filePath: json['filePath'] as String?,
+      dateAdded: json['dateAdded'] != null
+          ? DateTime.parse(json['dateAdded'] as String)
+          : null,
+    );
+  }
+
+  // Create a copy with updated fields
+  Book copyWith({
+    String? id,
+    String? title,
+    String? author,
+    double? progress,
+    String? coverImagePath,
+    Color? coverColor,
+    String? filePath,
+    DateTime? dateAdded,
+  }) {
+    return Book(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      author: author ?? this.author,
+      progress: progress ?? this.progress,
+      coverImagePath: coverImagePath ?? this.coverImagePath,
+      coverColor: coverColor ?? this.coverColor,
+      filePath: filePath ?? this.filePath,
+      dateAdded: dateAdded ?? this.dateAdded,
+    );
+  }
 }
 
 class Highlight {
