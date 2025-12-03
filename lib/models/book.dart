@@ -115,4 +115,28 @@ class Bookmark {
     this.coverImagePath,
     this.coverColor,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'bookId': bookId,
+    'bookTitle': bookTitle,
+    'chapter': chapter,
+    'page': page,
+    'date': date.toIso8601String(),
+    'coverImagePath': coverImagePath,
+    'coverColor': coverColor?.value,
+  };
+
+  factory Bookmark.fromJson(Map<String, dynamic> json) => Bookmark(
+    id: json['id'] as String,
+    bookId: json['bookId'] as String,
+    bookTitle: json['bookTitle'] as String,
+    chapter: json['chapter'] as String?,
+    page: json['page'] as int,
+    date: DateTime.parse(json['date'] as String),
+    coverImagePath: json['coverImagePath'] as String?,
+    coverColor: json['coverColor'] != null
+        ? Color(json['coverColor'] as int)
+        : null,
+  );
 }

@@ -183,7 +183,7 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
                             crossAxisCount: 2,
                             crossAxisSpacing: DesignSystem.spacingMD,
                             mainAxisSpacing: DesignSystem.spacingMD,
-                            childAspectRatio: 0.7,
+                            childAspectRatio: 0.55,
                           ),
                       itemCount: _books.length,
                       itemBuilder: (context, index) => BookCard(

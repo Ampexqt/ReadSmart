@@ -76,4 +76,47 @@ class BookStorageService {
     }
     return null;
   }
+
+  // Bookmark Management
+  static const String _bookmarksKey = 'bookmarks';
+
+  Future<List<Bookmark>> loadBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bookmarksString = prefs.getString(_bookmarksKey);
+
+    if (bookmarksString == null || bookmarksString.isEmpty) {
+      return [];
+    }
+
+    try {
+      final List<dynamic> bookmarksJson = jsonDecode(bookmarksString);
+      return bookmarksJson.map((json) => Bookmark.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading bookmarks: $e');
+      return [];
+    }
+  }
+
+  Future<void> saveBookmarks(List<Bookmark> bookmarks) async {
+    final prefs = await SharedPreferences.getInstance();
+    final bookmarksJson = bookmarks.map((b) => b.toJson()).toList();
+    await prefs.setString(_bookmarksKey, jsonEncode(bookmarksJson));
+  }
+
+  Future<void> addBookmark(Bookmark bookmark) async {
+    final bookmarks = await loadBookmarks();
+    bookmarks.add(bookmark);
+    await saveBookmarks(bookmarks);
+  }
+
+  Future<void> deleteBookmark(String bookmarkId) async {
+    final bookmarks = await loadBookmarks();
+    bookmarks.removeWhere((b) => b.id == bookmarkId);
+    await saveBookmarks(bookmarks);
+  }
+
+  Future<bool> isChapterBookmarked(String bookId, int chapterIndex) async {
+    final bookmarks = await loadBookmarks();
+    return bookmarks.any((b) => b.bookId == bookId && b.page == chapterIndex);
+  }
 }
