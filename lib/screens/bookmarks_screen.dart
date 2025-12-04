@@ -50,6 +50,88 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
     }
   }
 
+  void _showDeleteConfirmation(String bookmarkId, String bookTitle) {
+    final isDark = context.read<ThemeProvider>().isDarkMode;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: DesignSystem.cardColor(isDark),
+        shape: const RoundedRectangleBorder(),
+        contentPadding: const EdgeInsets.all(DesignSystem.spacingLG),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'DELETE BOOKMARK?',
+              style: DesignSystem.text2XL.copyWith(
+                fontWeight: FontWeight.w900,
+                color: DesignSystem.textColor(isDark),
+              ),
+            ),
+            const SizedBox(height: DesignSystem.spacingMD),
+            Text(
+              'Are you sure you want to delete this bookmark from "$bookTitle"? This action cannot be undone.',
+              style: DesignSystem.textBase.copyWith(
+                color: DesignSystem.textColor(isDark),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: DesignSystem.cardColor(isDark),
+                    shape: const RoundedRectangleBorder(),
+                    side: BorderSide(
+                      color: DesignSystem.textColor(isDark),
+                      width: 2,
+                    ),
+                  ),
+                  child: Text(
+                    'CANCEL',
+                    style: TextStyle(
+                      color: DesignSystem.textColor(isDark),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: DesignSystem.spacingMD),
+              Expanded(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _deleteBookmark(bookmarkId);
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: DesignSystem.textColor(isDark),
+                    shape: const RoundedRectangleBorder(),
+                  ),
+                  child: Text(
+                    'DELETE',
+                    style: TextStyle(
+                      color: DesignSystem.backgroundColor(isDark),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _openBookmark(Bookmark bookmark) async {
     // Load the book and navigate to the bookmarked chapter
     final books = await _storageService.loadBooks();
@@ -163,72 +245,74 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   Widget _buildBookmarkCard(Bookmark bookmark) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
 
-    return Dismissible(
-      key: Key(bookmark.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: DesignSystem.spacingLG),
+    return GestureDetector(
+      onTap: () => _openBookmark(bookmark),
+      child: Container(
+        padding: const EdgeInsets.all(DesignSystem.spacingMD),
         decoration: BoxDecoration(
-          color: Colors.red,
+          color: DesignSystem.cardColor(isDark),
           border: DesignSystem.themeBorder(isDark),
+          boxShadow: DesignSystem.themeShadowSmall(isDark),
         ),
-        child: const Icon(
-          Icons.delete,
-          color: DesignSystem.primaryWhite,
-          size: DesignSystem.iconSizeLG,
-        ),
-      ),
-      onDismissed: (direction) {
-        _deleteBookmark(bookmark.id);
-      },
-      child: GestureDetector(
-        onTap: () => _openBookmark(bookmark),
-        child: Container(
-          padding: const EdgeInsets.all(DesignSystem.spacingMD),
-          decoration: BoxDecoration(
-            color: DesignSystem.cardColor(isDark),
-            border: DesignSystem.themeBorder(isDark),
-            boxShadow: DesignSystem.themeShadowSmall(isDark),
-          ),
-          child: Row(
-            children: [
-              // Mini Cover
-              Container(
-                width: 48,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: bookmark.coverColor ?? DesignSystem.grey200,
-                  border: DesignSystem.themeBorder(isDark),
-                ),
-                child: bookmark.coverImagePath != null
-                    ? Image.asset(bookmark.coverImagePath!, fit: BoxFit.cover)
-                    : Icon(
-                        Icons.menu_book,
-                        size: DesignSystem.iconSizeLG,
-                        color: isDark
-                            ? DesignSystem.grey600
-                            : DesignSystem.primaryBlack,
-                      ),
+        child: Row(
+          children: [
+            // Mini Cover
+            Container(
+              width: 48,
+              height: 64,
+              decoration: BoxDecoration(
+                color: bookmark.coverColor ?? DesignSystem.grey200,
+                border: DesignSystem.themeBorder(isDark),
               ),
-              const SizedBox(width: DesignSystem.spacingMD),
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+              child: bookmark.coverImagePath != null
+                  ? Image.asset(bookmark.coverImagePath!, fit: BoxFit.cover)
+                  : Icon(
+                      Icons.menu_book,
+                      size: DesignSystem.iconSizeLG,
+                      color: isDark
+                          ? DesignSystem.grey600
+                          : DesignSystem.primaryBlack,
+                    ),
+            ),
+            const SizedBox(width: DesignSystem.spacingMD),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    bookmark.bookTitle,
+                    style: DesignSystem.textBase.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: DesignSystem.textColor(isDark),
+                    ),
+                  ),
+                  if (bookmark.chapter != null) ...[
+                    const SizedBox(height: DesignSystem.spacingXS),
                     Text(
-                      bookmark.bookTitle,
-                      style: DesignSystem.textBase.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: DesignSystem.textColor(isDark),
+                      bookmark.chapter!,
+                      style: DesignSystem.textSM.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: isDark
+                            ? DesignSystem.grey500
+                            : DesignSystem.grey600,
                       ),
                     ),
-                    if (bookmark.chapter != null) ...[
-                      const SizedBox(height: DesignSystem.spacingXS),
+                  ],
+                  const SizedBox(height: DesignSystem.spacingXS),
+                  Row(
+                    children: [
                       Text(
-                        bookmark.chapter!,
-                        style: DesignSystem.textSM.copyWith(
+                        'PAGE ${bookmark.page}',
+                        style: DesignSystem.textXS.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: DesignSystem.textColor(isDark),
+                        ),
+                      ),
+                      const SizedBox(width: DesignSystem.spacingSM),
+                      Text(
+                        '• ${_formatDate(bookmark.date)}',
+                        style: DesignSystem.textXS.copyWith(
                           fontWeight: FontWeight.w500,
                           color: isDark
                               ? DesignSystem.grey500
@@ -236,39 +320,24 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: DesignSystem.spacingXS),
-                    Row(
-                      children: [
-                        Text(
-                          'PAGE ${bookmark.page}',
-                          style: DesignSystem.textXS.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: DesignSystem.textColor(isDark),
-                          ),
-                        ),
-                        const SizedBox(width: DesignSystem.spacingSM),
-                        Text(
-                          '• ${_formatDate(bookmark.date)}',
-                          style: DesignSystem.textXS.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: isDark
-                                ? DesignSystem.grey500
-                                : DesignSystem.grey600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              // Arrow icon to indicate it's tappable
-              Icon(
-                Icons.chevron_right,
-                color: isDark ? DesignSystem.grey500 : DesignSystem.grey600,
-                size: DesignSystem.iconSizeLG,
+            ),
+            // Delete icon button
+            IconButton(
+              icon: Icon(
+                Icons.delete_outline,
+                color: DesignSystem.textColor(isDark),
+                size: 24,
               ),
-            ],
-          ),
+              onPressed: () {
+                _showDeleteConfirmation(bookmark.id, bookmark.bookTitle);
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            ),
+          ],
         ),
       ),
     );

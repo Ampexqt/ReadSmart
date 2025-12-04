@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io';
 import '../theme/design_system.dart';
@@ -24,8 +23,6 @@ class _AddBookModalState extends State<AddBookModal> {
   File? _eBookFile;
   String? _eBookFileName; // Store filename for web
   List<int>? _fileBytes; // Store bytes for web
-  File? _coverImage;
-  String? _coverImagePath; // Store path for web
   Color? _selectedColor;
   bool _isSaving = false;
 
@@ -77,23 +74,6 @@ class _AddBookModalState extends State<AddBookModal> {
     }
   }
 
-  Future<void> _pickCoverImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile != null) {
-      setState(() {
-        if (kIsWeb) {
-          _coverImagePath = pickedFile.path;
-          _coverImage = null;
-        } else {
-          _coverImage = File(pickedFile.path);
-          _coverImagePath = null;
-        }
-      });
-    }
-  }
-
   Future<void> _saveBook() async {
     // Validate inputs
     if (_titleController.text.trim().isEmpty) {
@@ -119,7 +99,6 @@ class _AddBookModalState extends State<AddBookModal> {
         title: _titleController.text.trim(),
         author: _authorController.text.trim(),
         filePath: _eBookFile?.path ?? _eBookFileName!,
-        coverImagePath: _coverImage?.path ?? _coverImagePath,
         coverColor: _selectedColor ?? DesignSystem.grey200,
         dateAdded: DateTime.now(),
         progress: 0.0,
@@ -227,50 +206,6 @@ class _AddBookModalState extends State<AddBookModal> {
             label: 'AUTHOR',
             controller: _authorController,
             hintText: 'Enter author name',
-          ),
-          const SizedBox(height: DesignSystem.spacingMD),
-          // Cover Photo Preview - SMALLER
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: _selectedColor ?? DesignSystem.grey200,
-              border: DesignSystem.border,
-            ),
-            child: _coverImage != null
-                ? Image.file(_coverImage!, fit: BoxFit.cover)
-                : (_coverImagePath != null
-                      ? Image.network(_coverImagePath!, fit: BoxFit.cover)
-                      : Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.image,
-                              size: 40,
-                              color: DesignSystem.primaryBlack,
-                            ),
-                            const SizedBox(height: DesignSystem.spacingXS),
-                            Text(
-                              'NO PHOTO',
-                              style: DesignSystem.textXS.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        )),
-          ),
-          const SizedBox(height: DesignSystem.spacingMD),
-          // Add Photo Button
-          BrutalButton(
-            text: 'ADD PHOTO',
-            variant: BrutalButtonVariant.outline,
-            fullWidth: true,
-            icon: const Icon(
-              Icons.image,
-              size: DesignSystem.iconSizeMD,
-              color: DesignSystem.primaryBlack,
-            ),
-            onPressed: _pickCoverImage,
           ),
           const SizedBox(height: DesignSystem.spacingMD),
           // Color Selector

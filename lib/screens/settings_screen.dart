@@ -17,7 +17,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final BookStorageService _storageService = BookStorageService();
   bool _notifications = false; // Disabled by default
-  String _fontSize = 'MEDIUM';
   int _bookCount = 0;
 
   @override
@@ -105,16 +104,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               );
                             },
                           ),
-                          const SizedBox(height: DesignSystem.spacingMD),
-                          _buildFontSizeSelector(),
-                        ]),
-                        const SizedBox(height: DesignSystem.spacingLG),
-                        _buildSection('READING', [
-                          _buildSettingTile(
-                            icon: Icons.font_download,
-                            title: 'FONT SIZE',
-                            subtitle: _fontSize,
-                          ),
                         ]),
                         const SizedBox(height: DesignSystem.spacingLG),
                         _buildSection('NOTIFICATIONS', [
@@ -123,17 +112,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             title: 'ENABLE NOTIFICATIONS',
                             trailing: _buildToggle(_notifications, (value) {
                               if (value) {
+                                final isDark = context
+                                    .read<ThemeProvider>()
+                                    .isDarkMode;
                                 // Show coming soon message
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: const Text(
-                                      'Coming Soon! Notifications feature is under development.',
+                                    content: Text(
+                                      'Coming Soon!',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? DesignSystem.darkBackground
+                                            : DesignSystem.primaryWhite,
                                       ),
                                     ),
                                     duration: const Duration(seconds: 3),
-                                    backgroundColor: DesignSystem.primaryBlack,
+                                    backgroundColor: isDark
+                                        ? DesignSystem.darkText
+                                        : DesignSystem.primaryBlack,
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );
@@ -275,45 +272,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFontSizeSelector() {
-    return Row(
-      children: [
-        Expanded(child: _buildFontSizeButton('SMALL', _fontSize == 'SMALL')),
-        const SizedBox(width: DesignSystem.spacingSM),
-        Expanded(child: _buildFontSizeButton('MEDIUM', _fontSize == 'MEDIUM')),
-        const SizedBox(width: DesignSystem.spacingSM),
-        Expanded(child: _buildFontSizeButton('LARGE', _fontSize == 'LARGE')),
-      ],
-    );
-  }
-
-  Widget _buildFontSizeButton(String label, bool isActive) {
-    final isDark = context.watch<ThemeProvider>().isDarkMode;
-
-    return GestureDetector(
-      onTap: () => setState(() => _fontSize = label),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: DesignSystem.spacingSM),
-        decoration: BoxDecoration(
-          color: isActive
-              ? DesignSystem.textColor(isDark)
-              : DesignSystem.cardColor(isDark),
-          border: DesignSystem.themeBorder(isDark),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: DesignSystem.textXS.copyWith(
-            fontWeight: FontWeight.w700,
-            color: isActive
-                ? DesignSystem.backgroundColor(isDark)
-                : DesignSystem.textColor(isDark),
-          ),
         ),
       ),
     );

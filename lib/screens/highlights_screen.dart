@@ -49,6 +49,88 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
     }
   }
 
+  void _showDeleteConfirmation(String highlightId, String highlightText) {
+    final isDark = context.read<ThemeProvider>().isDarkMode;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: DesignSystem.cardColor(isDark),
+        shape: const RoundedRectangleBorder(),
+        contentPadding: const EdgeInsets.all(DesignSystem.spacingLG),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'DELETE HIGHLIGHT?',
+              style: DesignSystem.text2XL.copyWith(
+                fontWeight: FontWeight.w900,
+                color: DesignSystem.textColor(isDark),
+              ),
+            ),
+            const SizedBox(height: DesignSystem.spacingMD),
+            Text(
+              'Are you sure you want to delete this highlight? This action cannot be undone.',
+              style: DesignSystem.textBase.copyWith(
+                color: DesignSystem.textColor(isDark),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: DesignSystem.cardColor(isDark),
+                    shape: const RoundedRectangleBorder(),
+                    side: BorderSide(
+                      color: DesignSystem.textColor(isDark),
+                      width: 2,
+                    ),
+                  ),
+                  child: Text(
+                    'CANCEL',
+                    style: TextStyle(
+                      color: DesignSystem.textColor(isDark),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: DesignSystem.spacingMD),
+              Expanded(
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _deleteHighlight(highlightId);
+                  },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: DesignSystem.textColor(isDark),
+                    shape: const RoundedRectangleBorder(),
+                  ),
+                  child: Text(
+                    'DELETE',
+                    style: TextStyle(
+                      color: DesignSystem.backgroundColor(isDark),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
@@ -71,14 +153,7 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
         child: Column(
           children: [
             // Header
-            MobileHeader(
-              title: 'HIGHLIGHTS',
-              rightAction: Icon(
-                Icons.filter_list,
-                size: DesignSystem.iconSizeLG,
-                color: DesignSystem.textColor(isDark),
-              ),
-            ),
+            const MobileHeader(title: 'HIGHLIGHTS'),
             // Stats Card
             Padding(
               padding: const EdgeInsets.all(DesignSystem.spacingMD),
@@ -162,142 +237,170 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                       ),
                       itemBuilder: (context, index) {
                         final highlight = _highlights[index];
-                        return Dismissible(
-                          key: Key(highlight.id),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(
-                              right: DesignSystem.spacingLG,
-                            ),
-                            color: Colors.red,
-                            child: const Icon(
-                              Icons.delete,
-                              color: DesignSystem.primaryWhite,
-                              size: DesignSystem.iconSizeLG,
-                            ),
-                          ),
-                          onDismissed: (direction) {
-                            _deleteHighlight(highlight.id);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: DesignSystem.spacingMD,
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 4,
-                                  height: 60,
-                                  color:
-                                      highlight.highlightColor ??
-                                      const Color(0xFFFFEB3B),
-                                  margin: const EdgeInsets.only(
-                                    right: DesignSystem.spacingMD,
+                        return Stack(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: DesignSystem.spacingMD,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 60,
+                                    color:
+                                        highlight.highlightColor ??
+                                        const Color(0xFFFFEB3B),
+                                    margin: const EdgeInsets.only(
+                                      right: DesignSystem.spacingMD,
+                                    ),
                                   ),
-                                ),
-                                Icon(
-                                  Icons.format_quote,
-                                  size: DesignSystem.iconSizeLG,
-                                  color: DesignSystem.textColor(isDark),
-                                ),
-                                const SizedBox(width: DesignSystem.spacingMD),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(
-                                          DesignSystem.spacingSM,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color:
-                                              highlight.highlightColor
-                                                  ?.withOpacity(0.2) ??
-                                              const Color(
-                                                0xFFFFEB3B,
-                                              ).withOpacity(0.2),
-                                        ),
-                                        child: Text(
-                                          highlight.text,
-                                          style: DesignSystem.textBase.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                            height: 1.5,
-                                            color: DesignSystem.textColor(
-                                              isDark,
+                                  Icon(
+                                    Icons.format_quote,
+                                    size: DesignSystem.iconSizeLG,
+                                    color: DesignSystem.textColor(isDark),
+                                  ),
+                                  const SizedBox(width: DesignSystem.spacingMD),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        right: 32,
+                                      ), // Space for delete icon
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.all(
+                                              DesignSystem.spacingSM,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  highlight.highlightColor
+                                                      ?.withOpacity(0.2) ??
+                                                  const Color(
+                                                    0xFFFFEB3B,
+                                                  ).withOpacity(0.2),
+                                            ),
+                                            child: Text(
+                                              highlight.text,
+                                              style: DesignSystem.textBase
+                                                  .copyWith(
+                                                    fontWeight: FontWeight.w500,
+                                                    height: 1.5,
+                                                    color:
+                                                        DesignSystem.textColor(
+                                                          isDark,
+                                                        ),
+                                                  ),
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                      if (highlight.note != null &&
-                                          highlight.note!.isNotEmpty) ...[
-                                        const SizedBox(
-                                          height: DesignSystem.spacingSM,
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.all(
-                                            DesignSystem.spacingSM,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                              color: DesignSystem.grey300,
-                                              width: 1,
+                                          if (highlight.note != null &&
+                                              highlight.note!.isNotEmpty) ...[
+                                            const SizedBox(
+                                              height: DesignSystem.spacingSM,
                                             ),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.note,
-                                                size: 16,
-                                                color: DesignSystem.grey600,
+                                            Container(
+                                              padding: const EdgeInsets.all(
+                                                DesignSystem.spacingSM,
                                               ),
-                                              const SizedBox(width: 4),
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: DesignSystem.grey300,
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.note,
+                                                    size: 16,
+                                                    color: DesignSystem.grey600,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text(
+                                                      highlight.note!,
+                                                      style: DesignSystem.textSM
+                                                          .copyWith(
+                                                            fontStyle: FontStyle
+                                                                .italic,
+                                                            color: DesignSystem
+                                                                .grey700,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                          const SizedBox(
+                                            height: DesignSystem.spacingSM,
+                                          ),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
                                               Expanded(
                                                 child: Text(
-                                                  highlight.note!,
+                                                  highlight.bookTitle,
                                                   style: DesignSystem.textSM
                                                       .copyWith(
-                                                        fontStyle:
-                                                            FontStyle.italic,
-                                                        color: DesignSystem
-                                                            .grey700,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color:
+                                                            DesignSystem.textColor(
+                                                              isDark,
+                                                            ),
                                                       ),
                                                 ),
                                               ),
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons.delete_outline,
+                                                  color: DesignSystem.textColor(
+                                                    isDark,
+                                                  ),
+                                                  size: 24,
+                                                ),
+                                                onPressed: () {
+                                                  _showDeleteConfirmation(
+                                                    highlight.id,
+                                                    highlight.text,
+                                                  );
+                                                },
+                                                padding: EdgeInsets.zero,
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 32,
+                                                      minHeight: 32,
+                                                    ),
+                                              ),
                                             ],
                                           ),
-                                        ),
-                                      ],
-                                      const SizedBox(
-                                        height: DesignSystem.spacingSM,
+                                          const SizedBox(
+                                            height: DesignSystem.spacingXS,
+                                          ),
+                                          Text(
+                                            '${highlight.chapter ?? 'Chapter ${highlight.page + 1}'} • ${_formatDate(highlight.date)}',
+                                            style: DesignSystem.textXS.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                              color: isDark
+                                                  ? DesignSystem.grey500
+                                                  : DesignSystem.grey600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      Text(
-                                        highlight.bookTitle,
-                                        style: DesignSystem.textSM.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: DesignSystem.textColor(isDark),
-                                        ),
-                                      ),
-                                      const SizedBox(
-                                        height: DesignSystem.spacingXS,
-                                      ),
-                                      Text(
-                                        '${highlight.chapter ?? 'Chapter ${highlight.page + 1}'} • ${_formatDate(highlight.date)}',
-                                        style: DesignSystem.textXS.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: isDark
-                                              ? DesignSystem.grey500
-                                              : DesignSystem.grey600,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
+                          ],
                         );
                       },
                     ),
