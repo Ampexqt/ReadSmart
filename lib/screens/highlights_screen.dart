@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/mobile_header.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/brutal_card.dart';
@@ -49,8 +51,10 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Scaffold(
-      backgroundColor: DesignSystem.primaryWhite,
+      backgroundColor: DesignSystem.backgroundColor(isDark),
       body: Container(
         constraints: const BoxConstraints(maxWidth: DesignSystem.maxWidth),
         margin: EdgeInsets.symmetric(
@@ -58,10 +62,10 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
               ? (MediaQuery.of(context).size.width - DesignSystem.maxWidth) / 2
               : 0,
         ),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            left: DesignSystem.borderSide,
-            right: DesignSystem.borderSide,
+            left: DesignSystem.themeBorderSide(isDark),
+            right: DesignSystem.themeBorderSide(isDark),
           ),
         ),
         child: Column(
@@ -82,16 +86,17 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                 padding: const EdgeInsets.all(DesignSystem.spacingLG),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.format_quote,
                       size: DesignSystem.iconSizeLG,
-                      color: DesignSystem.primaryBlack,
+                      color: DesignSystem.textColor(isDark),
                     ),
                     const SizedBox(width: DesignSystem.spacingMD),
                     Text(
                       _highlights.length.toString(),
                       style: DesignSystem.text3XL.copyWith(
                         fontWeight: FontWeight.w900,
+                        color: DesignSystem.textColor(isDark),
                       ),
                     ),
                     const SizedBox(width: DesignSystem.spacingSM),
@@ -100,6 +105,7 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                         'TOTAL HIGHLIGHTS',
                         style: DesignSystem.textSM.copyWith(
                           fontWeight: FontWeight.w700,
+                          color: DesignSystem.textColor(isDark),
                         ),
                       ),
                     ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/mobile_header.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/brutal_input.dart';
@@ -62,8 +64,10 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Scaffold(
-      backgroundColor: DesignSystem.primaryWhite,
+      backgroundColor: DesignSystem.backgroundColor(isDark),
       body: Container(
         constraints: const BoxConstraints(maxWidth: DesignSystem.maxWidth),
         margin: EdgeInsets.symmetric(
@@ -71,10 +75,10 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
               ? (MediaQuery.of(context).size.width - DesignSystem.maxWidth) / 2
               : 0,
         ),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            left: DesignSystem.borderSide,
-            right: DesignSystem.borderSide,
+            left: DesignSystem.themeBorderSide(isDark),
+            right: DesignSystem.themeBorderSide(isDark),
           ),
         ),
         child: Column(
@@ -88,12 +92,12 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: DesignSystem.primaryBlack,
-                    border: DesignSystem.border,
+                    color: DesignSystem.textColor(isDark),
+                    border: DesignSystem.themeBorder(isDark),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.add,
-                    color: DesignSystem.primaryWhite,
+                    color: DesignSystem.backgroundColor(isDark),
                     size: DesignSystem.iconSizeMD,
                   ),
                 ),
@@ -240,6 +244,8 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
   }
 
   Widget _buildStatCard({required String number, required String label}) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return BrutalCard(
       padding: const EdgeInsets.all(DesignSystem.spacingMD),
       child: Column(
@@ -247,12 +253,18 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
         children: [
           Text(
             number,
-            style: DesignSystem.text2XL.copyWith(fontWeight: FontWeight.w900),
+            style: DesignSystem.text2XL.copyWith(
+              fontWeight: FontWeight.w900,
+              color: DesignSystem.textColor(isDark),
+            ),
           ),
           const SizedBox(height: DesignSystem.spacingXS),
           Text(
             label,
-            style: DesignSystem.textXS.copyWith(fontWeight: FontWeight.w700),
+            style: DesignSystem.textXS.copyWith(
+              fontWeight: FontWeight.w700,
+              color: DesignSystem.textColor(isDark),
+            ),
           ),
         ],
       ),

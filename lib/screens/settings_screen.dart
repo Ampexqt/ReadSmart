@@ -151,6 +151,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSection(String title, List<Widget> children) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -159,6 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: DesignSystem.textSM.copyWith(
             fontWeight: FontWeight.w700,
             letterSpacing: 0.05,
+            color: DesignSystem.textColor(isDark),
           ),
         ),
         const SizedBox(height: DesignSystem.spacingMD),
@@ -174,21 +177,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Widget? trailing,
     VoidCallback? onTap,
   }) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(DesignSystem.spacingMD),
         decoration: BoxDecoration(
-          color: DesignSystem.primaryWhite,
-          border: DesignSystem.border,
-          boxShadow: DesignSystem.shadowSmall,
+          color: DesignSystem.cardColor(isDark),
+          border: DesignSystem.themeBorder(isDark),
+          boxShadow: DesignSystem.themeShadowSmall(isDark),
         ),
         child: Row(
           children: [
             Icon(
               icon,
               size: DesignSystem.iconSizeLG,
-              color: DesignSystem.primaryBlack,
+              color: DesignSystem.textColor(isDark),
             ),
             const SizedBox(width: DesignSystem.spacingMD),
             Expanded(
@@ -199,6 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     title,
                     style: DesignSystem.textBase.copyWith(
                       fontWeight: FontWeight.w700,
+                      color: DesignSystem.textColor(isDark),
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -207,7 +213,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle,
                       style: DesignSystem.textSM.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: DesignSystem.grey600,
+                        color: isDark
+                            ? DesignSystem.grey500
+                            : DesignSystem.grey600,
                       ),
                     ),
                   ],
@@ -266,15 +274,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildFontSizeButton(String label, bool isActive) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return GestureDetector(
       onTap: () => setState(() => _fontSize = label),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: DesignSystem.spacingSM),
         decoration: BoxDecoration(
           color: isActive
-              ? DesignSystem.primaryBlack
-              : DesignSystem.primaryWhite,
-          border: DesignSystem.border,
+              ? DesignSystem.textColor(isDark)
+              : DesignSystem.cardColor(isDark),
+          border: DesignSystem.themeBorder(isDark),
         ),
         child: Text(
           label,
@@ -282,8 +292,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: DesignSystem.textXS.copyWith(
             fontWeight: FontWeight.w700,
             color: isActive
-                ? DesignSystem.primaryWhite
-                : DesignSystem.primaryBlack,
+                ? DesignSystem.backgroundColor(isDark)
+                : DesignSystem.textColor(isDark),
           ),
         ),
       ),
