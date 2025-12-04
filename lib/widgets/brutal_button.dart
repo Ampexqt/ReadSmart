@@ -55,7 +55,8 @@ class _BrutalButtonState extends State<BrutalButton>
     } else if (widget.variant == BrutalButtonVariant.secondary) {
       return DesignSystem.cardColor(isDark);
     } else {
-      return Colors.transparent;
+      // Outline variant - use card color for background
+      return DesignSystem.cardColor(isDark);
     }
   }
 

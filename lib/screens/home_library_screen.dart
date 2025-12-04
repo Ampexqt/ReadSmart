@@ -22,6 +22,7 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
   final BookStorageService _storageService = BookStorageService();
   List<Book> _books = [];
+  List<Book> _filteredBooks = []; // Filtered list for search
   bool _isLoading = true;
   int? _bookmarksCount;
   int? _highlightsCount;
@@ -31,6 +32,15 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
     super.initState();
     _loadBooks();
     _loadCounts();
+    // Add listener for search
+    _searchController.addListener(_filterBooks);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterBooks);
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -45,7 +55,23 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
     final books = await _storageService.loadBooks();
     setState(() {
       _books = books;
+      _filteredBooks = books; // Initialize filtered list
       _isLoading = false;
+    });
+  }
+
+  void _filterBooks() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredBooks = _books;
+      } else {
+        _filteredBooks = _books.where((book) {
+          final titleMatch = book.title.toLowerCase().contains(query);
+          final authorMatch = book.author.toLowerCase().contains(query);
+          return titleMatch || authorMatch;
+        }).toList();
+      }
     });
   }
 
@@ -207,6 +233,40 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
                           ),
                         ),
                       )
+                    : _filteredBooks.isEmpty
+                    ? SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: DesignSystem.grey400,
+                                ),
+                                const SizedBox(height: DesignSystem.spacingMD),
+                                Text(
+                                  'NO BOOKS FOUND',
+                                  style: DesignSystem.textLG.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: DesignSystem.grey600,
+                                  ),
+                                ),
+                                const SizedBox(height: DesignSystem.spacingSM),
+                                Text(
+                                  'Try a different search term',
+                                  style: DesignSystem.textBase.copyWith(
+                                    color: DesignSystem.grey500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
                     : GridView.builder(
                         padding: const EdgeInsets.all(DesignSystem.spacingMD),
                         gridDelegate:
@@ -216,17 +276,18 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
                               mainAxisSpacing: DesignSystem.spacingMD,
                               childAspectRatio: 0.55,
                             ),
-                        itemCount: _books.length,
+                        itemCount: _filteredBooks.length,
                         itemBuilder: (context, index) => BookCard(
-                          title: _books[index].title,
-                          author: _books[index].author,
-                          progress: _books[index].progress,
-                          coverColor: _books[index].coverColor,
-                          coverImagePath: _books[index].coverImagePath,
+                          title: _filteredBooks[index].title,
+                          author: _filteredBooks[index].author,
+                          progress: _filteredBooks[index].progress,
+                          coverColor: _filteredBooks[index].coverColor,
+                          coverImagePath: _filteredBooks[index].coverImagePath,
                           onTap: () {
-                            Navigator.of(
-                              context,
-                            ).pushNamed('/reader', arguments: _books[index]);
+                            Navigator.of(context).pushNamed(
+                              '/reader',
+                              arguments: _filteredBooks[index],
+                            );
                           },
                         ),
                       ),

@@ -16,7 +16,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final BookStorageService _storageService = BookStorageService();
-  bool _notifications = true;
+  bool _notifications = false; // Disabled by default
   String _fontSize = 'MEDIUM';
   int _bookCount = 0;
 
@@ -122,7 +122,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             icon: Icons.notifications,
                             title: 'ENABLE NOTIFICATIONS',
                             trailing: _buildToggle(_notifications, (value) {
-                              setState(() => _notifications = value);
+                              if (value) {
+                                // Show coming soon message
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Coming Soon! Notifications feature is under development.',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    duration: const Duration(seconds: 3),
+                                    backgroundColor: DesignSystem.primaryBlack,
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                                // Keep it disabled
+                                setState(() => _notifications = false);
+                              } else {
+                                setState(() => _notifications = value);
+                              }
                             }),
                           ),
                         ]),

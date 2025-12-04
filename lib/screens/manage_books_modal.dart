@@ -84,18 +84,27 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
           ],
         ),
         actions: [
-          BrutalButton(
-            text: 'CANCEL',
-            variant: BrutalButtonVariant.outline,
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          const SizedBox(width: DesignSystem.spacingMD),
-          BrutalButton(
-            text: 'DELETE',
-            onPressed: () {
-              Navigator.of(context).pop();
-              _deleteBook(book);
-            },
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Expanded(
+                child: BrutalButton(
+                  text: 'CANCEL',
+                  variant: BrutalButtonVariant.outline,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              const SizedBox(width: DesignSystem.spacingMD),
+              Expanded(
+                child: BrutalButton(
+                  text: 'DELETE',
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    _deleteBook(book);
+                  },
+                ),
+              ),
+            ],
           ),
         ],
       ),

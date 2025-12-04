@@ -296,16 +296,23 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
   Widget _buildDrawer() {
     if (_allChapters.isEmpty) return const SizedBox();
 
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Drawer(
+      backgroundColor: DesignSystem.backgroundColor(isDark),
       child: Column(
         children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: DesignSystem.primaryBlack),
+          DrawerHeader(
+            decoration: BoxDecoration(
+              color: isDark ? DesignSystem.darkCard : DesignSystem.primaryBlack,
+            ),
             child: Center(
               child: Text(
                 'Table of Contents',
                 style: TextStyle(
-                  color: DesignSystem.primaryWhite,
+                  color: isDark
+                      ? DesignSystem.darkText
+                      : DesignSystem.primaryWhite,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -326,7 +333,13 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.normal,
-                      color: isSelected ? DesignSystem.primaryBlack : null,
+                      color: isSelected
+                          ? (isDark
+                                ? DesignSystem.darkText
+                                : DesignSystem.primaryBlack)
+                          : (isDark
+                                ? DesignSystem.grey500
+                                : DesignSystem.grey600),
                     ),
                   ),
                   onTap: () {
