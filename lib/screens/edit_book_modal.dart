@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/brutal_modal.dart';
 import '../widgets/brutal_input.dart';
 import '../widgets/brutal_button.dart';
@@ -119,6 +121,9 @@ class _EditBookModalState extends State<EditBookModal> {
                 style: DesignSystem.textSM.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.05,
+                  color: DesignSystem.textColor(
+                    context.watch<ThemeProvider>().isDarkMode,
+                  ),
                 ),
               ),
               const SizedBox(height: DesignSystem.spacingSM),
@@ -134,6 +139,9 @@ class _EditBookModalState extends State<EditBookModal> {
                 style: DesignSystem.textSM.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.05,
+                  color: DesignSystem.textColor(
+                    context.watch<ThemeProvider>().isDarkMode,
+                  ),
                 ),
               ),
               const SizedBox(height: DesignSystem.spacingSM),
@@ -149,6 +157,9 @@ class _EditBookModalState extends State<EditBookModal> {
                 style: DesignSystem.textSM.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.05,
+                  color: DesignSystem.textColor(
+                    context.watch<ThemeProvider>().isDarkMode,
+                  ),
                 ),
               ),
               const SizedBox(height: DesignSystem.spacingSM),

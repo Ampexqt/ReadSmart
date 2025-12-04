@@ -197,10 +197,10 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                                     right: DesignSystem.spacingMD,
                                   ),
                                 ),
-                                const Icon(
+                                Icon(
                                   Icons.format_quote,
                                   size: DesignSystem.iconSizeLG,
-                                  color: DesignSystem.primaryBlack,
+                                  color: DesignSystem.textColor(isDark),
                                 ),
                                 const SizedBox(width: DesignSystem.spacingMD),
                                 Expanded(

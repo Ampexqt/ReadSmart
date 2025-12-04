@@ -23,17 +23,21 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
   final BookStorageService _storageService = BookStorageService();
   List<Book> _books = [];
   bool _isLoading = true;
+  int? _bookmarksCount;
+  int? _highlightsCount;
 
   @override
   void initState() {
     super.initState();
     _loadBooks();
+    _loadCounts();
   }
 
   @override
   void didUpdateWidget(HomeLibraryScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     _loadBooks(); // Reload when widget updates
+    _loadCounts();
   }
 
   Future<void> _loadBooks() async {
@@ -42,6 +46,15 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
     setState(() {
       _books = books;
       _isLoading = false;
+    });
+  }
+
+  Future<void> _loadCounts() async {
+    final bookmarks = await _storageService.loadBookmarks();
+    final highlights = await _storageService.loadHighlights();
+    setState(() {
+      _bookmarksCount = bookmarks.length;
+      _highlightsCount = highlights.length;
     });
   }
 
@@ -134,21 +147,15 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
                   const SizedBox(width: DesignSystem.spacingMD),
                   Expanded(
                     child: _buildStatCard(
-                      number: _books
-                          .where((b) => b.progress > 0)
-                          .length
-                          .toString(),
-                      label: 'READING',
+                      number: (_bookmarksCount ?? 0).toString(),
+                      label: 'BOOKMARKS',
                     ),
                   ),
                   const SizedBox(width: DesignSystem.spacingMD),
                   Expanded(
                     child: _buildStatCard(
-                      number: _books
-                          .where((b) => b.progress == 1.0)
-                          .length
-                          .toString(),
-                      label: 'FINISHED',
+                      number: (_highlightsCount ?? 0).toString(),
+                      label: 'HIGHLIGHTS',
                     ),
                   ),
                 ],
@@ -247,23 +254,32 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
     final isDark = context.watch<ThemeProvider>().isDarkMode;
 
     return BrutalCard(
-      padding: const EdgeInsets.all(DesignSystem.spacingMD),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignSystem.spacingSM,
+        vertical: DesignSystem.spacingMD,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             number,
-            style: DesignSystem.text2XL.copyWith(
+            style: DesignSystem.text3XL.copyWith(
               fontWeight: FontWeight.w900,
               color: DesignSystem.textColor(isDark),
             ),
           ),
           const SizedBox(height: DesignSystem.spacingXS),
-          Text(
-            label,
-            style: DesignSystem.textXS.copyWith(
-              fontWeight: FontWeight.w700,
-              color: DesignSystem.textColor(isDark),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: DesignSystem.textXS.copyWith(
+                fontWeight: FontWeight.w700,
+                color: DesignSystem.textColor(isDark),
+                letterSpacing: 0.5,
+              ),
             ),
           ),
         ],
