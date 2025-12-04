@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/brutal_modal.dart';
-import '../widgets/brutal_button.dart';
 import '../widgets/brutal_input.dart';
+import '../widgets/brutal_button.dart';
+import '../models/book.dart';
+import '../services/book_storage_service.dart';
 
 class AddBookModal extends StatefulWidget {
   const AddBookModal({super.key});
@@ -15,196 +17,276 @@ class AddBookModal extends StatefulWidget {
 }
 
 class _AddBookModalState extends State<AddBookModal> {
+  final BookStorageService _storageService = BookStorageService();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _authorController = TextEditingController();
-  File? _eBookFile;
-  File? _coverImage;
-  Color? _selectedColor;
+  bool _isLoading = false;
+  Color? _selectedColor = DesignSystem.grey200;
+  String? _selectedFilePath;
+  String? _selectedFileName;
 
-  final List<Color> _coverColors = [
+  final List<Color> _colorOptions = [
     DesignSystem.grey200,
     DesignSystem.grey300,
-    DesignSystem.grey400,
-    DesignSystem.grey500,
+    const Color(0xFFE3F2FD), // Light Blue
+    const Color(0xFFFCE4EC), // Light Pink
+    const Color(0xFFF3E5F5), // Light Purple
+    const Color(0xFFE8F5E9), // Light Green
   ];
 
-  Future<void> _pickEBookFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['epub', 'pdf', 'mobi'],
-    );
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _authorController.dispose();
+    super.dispose();
+  }
 
-    if (result != null && result.files.single.path != null) {
-      setState(() {
-        _eBookFile = File(result.files.single.path!);
-      });
+  Future<void> _pickFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['epub'],
+        withData: true, // Important for web: loads file bytes
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.single;
+        final fileName = file.name;
+
+        // On web, path is null, so we use bytes
+        // On mobile, path might be available
+        if (file.bytes != null) {
+          // Save file bytes to storage (for web compatibility)
+          await _storageService.saveBookFile(fileName, file.bytes!);
+
+          setState(() {
+            // Use fileName as the identifier for web compatibility
+            _selectedFilePath = fileName;
+            _selectedFileName = fileName;
+          });
+        } else if (file.path != null) {
+          // Fallback for mobile platforms where path is available
+          setState(() {
+            _selectedFilePath = file.path;
+            _selectedFileName = fileName;
+          });
+        } else {
+          throw Exception('Unable to access file data');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking file: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
-  Future<void> _pickCoverImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+  Future<void> _addBook() async {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a book title'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
-    if (pickedFile != null) {
-      setState(() {
-        _coverImage = File(pickedFile.path);
-      });
+    if (_authorController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an author name'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedFilePath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a book file'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    // Create new book
+    final newBook = Book(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: _titleController.text.trim(),
+      author: _authorController.text.trim(),
+      filePath: _selectedFilePath!,
+      coverColor: _selectedColor,
+      progress: 0.0,
+      dateAdded: DateTime.now(),
+    );
+
+    // Add the book to storage
+    await _storageService.addBook(newBook);
+
+    setState(() => _isLoading = false);
+
+    if (mounted) {
+      Navigator.of(
+        context,
+      ).pop(true); // Return true to indicate a book was added
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return BrutalModal(
       title: 'ADD BOOK',
-      onClose: () => Navigator.of(context).pop(),
-      actions: [
-        BrutalButton(
-          text: 'CANCEL',
-          variant: BrutalButtonVariant.outline,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        const SizedBox(width: DesignSystem.spacingMD),
-        BrutalButton(
-          text: 'ADD BOOK',
-          onPressed: () {
-            // Handle add book logic
-            Navigator.of(context).pop();
-          },
-        ),
-      ],
+      onClose: () => Navigator.of(context).pop(false),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // eBook File Upload
+          // File Picker
+          Text(
+            'BOOK FILE',
+            style: DesignSystem.textSM.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.05,
+              color: DesignSystem.textColor(isDark),
+            ),
+          ),
+          const SizedBox(height: DesignSystem.spacingSM),
           GestureDetector(
-            onTap: _pickEBookFile,
+            onTap: _pickFile,
             child: Container(
-              padding: const EdgeInsets.all(DesignSystem.spacingLG),
+              padding: const EdgeInsets.all(DesignSystem.spacingMD),
               decoration: BoxDecoration(
-                color: DesignSystem.primaryWhite,
-                border: Border.all(
-                  color: DesignSystem.primaryBlack,
-                  width: DesignSystem.borderWidth,
-                  style: BorderStyle.solid,
-                ),
+                color: DesignSystem.cardColor(isDark),
+                border: DesignSystem.themeBorder(isDark),
               ),
-              child: Column(
+              child: Row(
                 children: [
                   Icon(
-                    _eBookFile != null ? Icons.description : Icons.upload_file,
-                    size: DesignSystem.iconSize2XL,
-                    color: DesignSystem.primaryBlack,
+                    Icons.upload_file,
+                    color: DesignSystem.textColor(isDark),
+                    size: DesignSystem.iconSizeLG,
                   ),
-                  const SizedBox(height: DesignSystem.spacingMD),
-                  Text(
-                    _eBookFile != null
-                        ? _eBookFile!.path.split('/').last
-                        : 'UPLOAD EBOOK FILE',
-                    style: DesignSystem.textBase.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: DesignSystem.primaryBlack,
-                    ),
-                  ),
-                  if (_eBookFile == null) ...[
-                    const SizedBox(height: DesignSystem.spacingXS),
-                    Text(
-                      'EPUB, PDF, MOBI',
-                      style: DesignSystem.textSM.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: DesignSystem.grey600,
+                  const SizedBox(width: DesignSystem.spacingMD),
+                  Expanded(
+                    child: Text(
+                      _selectedFileName ?? 'Select EPUB file only',
+                      style: DesignSystem.textBase.copyWith(
+                        color: _selectedFileName != null
+                            ? DesignSystem.textColor(isDark)
+                            : (isDark
+                                  ? DesignSystem.grey500
+                                  : DesignSystem.grey600),
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: DesignSystem.spacingLG),
-          // Cover Photo Preview
-          AspectRatio(
-            aspectRatio: DesignSystem.bookCoverAspectRatio,
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: _selectedColor ?? DesignSystem.grey200,
-                border: DesignSystem.border,
-              ),
-              child: _coverImage != null
-                  ? Image.file(_coverImage!, fit: BoxFit.cover)
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.image,
-                          size: DesignSystem.iconSize3XL,
-                          color: DesignSystem.primaryBlack,
-                        ),
-                        const SizedBox(height: DesignSystem.spacingSM),
-                        Text(
-                          'NO PHOTO',
-                          style: DesignSystem.textSM.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
+          const SizedBox(height: DesignSystem.spacingMD),
+
+          // Title Input
+          Text(
+            'TITLE',
+            style: DesignSystem.textSM.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.05,
+              color: DesignSystem.textColor(isDark),
             ),
           ),
-          const SizedBox(height: DesignSystem.spacingMD),
-          // Add Photo Button
-          BrutalButton(
-            text: 'ADD PHOTO',
-            variant: BrutalButtonVariant.outline,
-            fullWidth: true,
-            icon: const Icon(
-              Icons.image,
-              size: DesignSystem.iconSizeMD,
-              color: DesignSystem.primaryBlack,
-            ),
-            onPressed: _pickCoverImage,
-          ),
-          const SizedBox(height: DesignSystem.spacingLG),
-          // Form Fields
-          BrutalInput(
-            label: 'TITLE',
-            controller: _titleController,
-            hintText: 'Enter book title',
-          ),
-          const SizedBox(height: DesignSystem.spacingMD),
-          BrutalInput(
-            label: 'AUTHOR',
-            controller: _authorController,
-            hintText: 'Enter author name',
-          ),
-          const SizedBox(height: DesignSystem.spacingLG),
-          // Color Selector
-          Text('COVER COLOR', style: DesignSystem.labelStyle),
           const SizedBox(height: DesignSystem.spacingSM),
-          Row(
-            children: _coverColors.map((color) {
+          BrutalInput(
+            hintText: 'Enter book title',
+            controller: _titleController,
+          ),
+          const SizedBox(height: DesignSystem.spacingMD),
+
+          // Author Input
+          Text(
+            'AUTHOR',
+            style: DesignSystem.textSM.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.05,
+              color: DesignSystem.textColor(isDark),
+            ),
+          ),
+          const SizedBox(height: DesignSystem.spacingSM),
+          BrutalInput(
+            hintText: 'Enter author name',
+            controller: _authorController,
+          ),
+          const SizedBox(height: DesignSystem.spacingMD),
+
+          // Cover Color Selection
+          Text(
+            'COVER COLOR',
+            style: DesignSystem.textSM.copyWith(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.05,
+              color: DesignSystem.textColor(isDark),
+            ),
+          ),
+          const SizedBox(height: DesignSystem.spacingSM),
+          Wrap(
+            spacing: DesignSystem.spacingSM,
+            runSpacing: DesignSystem.spacingSM,
+            children: _colorOptions.map((color) {
               final isSelected = _selectedColor == color;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => setState(() => _selectedColor = color),
-                  child: Container(
-                    height: 48,
-                    margin: EdgeInsets.only(
-                      right: color != _coverColors.last
-                          ? DesignSystem.spacingSM
-                          : 0,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color,
-                      border: Border.all(
-                        color: DesignSystem.primaryBlack,
-                        width: isSelected ? 4 : DesignSystem.borderWidth,
-                      ),
-                    ),
+              return GestureDetector(
+                onTap: () => setState(() => _selectedColor = color),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color,
+                    border: isSelected
+                        ? Border.all(color: DesignSystem.primaryBlack, width: 3)
+                        : DesignSystem.border,
                   ),
+                  child: isSelected
+                      ? const Icon(
+                          Icons.check,
+                          color: DesignSystem.primaryBlack,
+                          size: 20,
+                        )
+                      : null,
                 ),
               );
             }).toList(),
+          ),
+          const SizedBox(height: DesignSystem.spacingMD),
+
+          // Action Buttons
+          Row(
+            children: [
+              Expanded(
+                child: BrutalButton(
+                  text: 'CANCEL',
+                  variant: BrutalButtonVariant.secondary,
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+              ),
+              const SizedBox(width: DesignSystem.spacingSM),
+              Expanded(
+                child: BrutalButton(
+                  text: _isLoading ? 'ADDING...' : 'ADD BOOK',
+                  onPressed: _isLoading ? null : _addBook,
+                ),
+              ),
+            ],
           ),
         ],
       ),

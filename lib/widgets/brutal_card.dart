@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 
 class BrutalCard extends StatefulWidget {
   final Widget child;
@@ -22,22 +24,24 @@ class BrutalCard extends StatefulWidget {
 class _BrutalCardState extends State<BrutalCard> {
   bool _isHovered = false;
 
-  List<BoxShadow> get _shadow {
+  List<BoxShadow> _getShadow(bool isDark) {
     if (widget.shadow != null) return widget.shadow!;
     if (_isHovered && widget.onTap != null) {
-      return DesignSystem.shadowLarge;
+      return DesignSystem.themeShadowSmall(isDark);
     }
-    return DesignSystem.shadowSmall;
+    return DesignSystem.themeShadowSmall(isDark);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     Widget card = Container(
       padding: widget.padding ?? const EdgeInsets.all(DesignSystem.spacingMD),
       decoration: BoxDecoration(
-        color: DesignSystem.primaryWhite,
-        border: DesignSystem.border,
-        boxShadow: _shadow,
+        color: DesignSystem.cardColor(isDark),
+        border: DesignSystem.themeBorder(isDark),
+        boxShadow: _getShadow(isDark),
       ),
       child: widget.child,
     );

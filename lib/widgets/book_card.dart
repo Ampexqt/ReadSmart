@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'brutal_card.dart';
 
 class BookCard extends StatelessWidget {
@@ -22,6 +26,8 @@ class BookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return BrutalCard(
       onTap: onTap,
       padding: EdgeInsets.zero,
@@ -29,63 +35,84 @@ class BookCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Cover
-          AspectRatio(
-            aspectRatio: DesignSystem.bookCoverAspectRatio,
+          Expanded(
+            flex: 3,
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
                 color: coverColor ?? DesignSystem.grey200,
-                border: const Border(bottom: DesignSystem.borderSide),
+                border: Border(bottom: DesignSystem.themeBorderSide(isDark)),
               ),
               child: coverImagePath != null
-                  ? Image.asset(
-                      coverImagePath!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          _buildPlaceholderIcon(),
-                    )
-                  : _buildPlaceholderIcon(),
+                  ? (kIsWeb
+                        ? Image.network(
+                            coverImagePath!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildPlaceholderIcon(isDark),
+                          )
+                        : Image.file(
+                            File(coverImagePath!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildPlaceholderIcon(isDark),
+                          ))
+                  : _buildPlaceholderIcon(isDark),
             ),
           ),
           // Content
-          Padding(
-            padding: const EdgeInsets.all(DesignSystem.spacingMD),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: DesignSystem.textBase.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: DesignSystem.spacingXS),
-                Text(
-                  author,
-                  style: DesignSystem.textSM.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: DesignSystem.grey600,
-                  ),
-                ),
-                if (progress > 0) ...[
-                  const SizedBox(height: DesignSystem.spacingSM),
-                  // Progress Bar
-                  Container(
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: DesignSystem.grey200,
-                      border: DesignSystem.borderSmall,
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(DesignSystem.spacingMD),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: DesignSystem.textBase.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: DesignSystem.textColor(isDark),
                     ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: progress,
-                      child: Container(color: DesignSystem.primaryBlack),
-                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: DesignSystem.spacingXS),
+                  Text(
+                    author,
+                    style: DesignSystem.textSM.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: isDark
+                          ? DesignSystem.grey500
+                          : DesignSystem.grey600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (progress > 0) ...[
+                    const SizedBox(height: DesignSystem.spacingSM),
+                    // Progress Bar
+                    Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? DesignSystem.grey700
+                            : DesignSystem.grey200,
+                        border: Border.all(
+                          color: DesignSystem.borderColor(isDark),
+                          width: DesignSystem.borderWidthSmall,
+                        ),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: progress,
+                        child: Container(color: DesignSystem.textColor(isDark)),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ],
@@ -93,12 +120,12 @@ class BookCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholderIcon() {
+  Widget _buildPlaceholderIcon(bool isDark) {
     return Center(
       child: Icon(
         Icons.menu_book,
         size: DesignSystem.iconSize2XL,
-        color: DesignSystem.primaryBlack,
+        color: isDark ? DesignSystem.grey600 : DesignSystem.primaryBlack,
       ),
     );
   }

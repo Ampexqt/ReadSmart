@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 
 enum BrutalButtonVariant { primary, secondary, outline }
 
@@ -47,21 +49,22 @@ class _BrutalButtonState extends State<BrutalButton>
     super.dispose();
   }
 
-  Color get _backgroundColor {
+  Color _backgroundColor(bool isDark) {
     if (widget.variant == BrutalButtonVariant.primary) {
-      return DesignSystem.primaryBlack;
+      return DesignSystem.textColor(isDark);
     } else if (widget.variant == BrutalButtonVariant.secondary) {
-      return DesignSystem.primaryWhite;
+      return DesignSystem.cardColor(isDark);
     } else {
-      return Colors.transparent;
+      // Outline variant - use card color for background
+      return DesignSystem.cardColor(isDark);
     }
   }
 
-  Color get _textColor {
+  Color _textColor(bool isDark) {
     if (widget.variant == BrutalButtonVariant.primary) {
-      return DesignSystem.primaryWhite;
+      return DesignSystem.backgroundColor(isDark);
     } else {
-      return DesignSystem.primaryBlack;
+      return DesignSystem.textColor(isDark);
     }
   }
 
@@ -96,15 +99,17 @@ class _BrutalButtonState extends State<BrutalButton>
     }
   }
 
-  List<BoxShadow> get _shadow {
+  List<BoxShadow> _shadow(bool isDark) {
     if (_isPressed) {
       return [];
     }
-    return DesignSystem.shadowSmall;
+    return DesignSystem.themeShadowSmall(isDark);
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     final button = GestureDetector(
       onTapDown: (_) {
         setState(() => _isPressed = true);
@@ -129,9 +134,9 @@ class _BrutalButtonState extends State<BrutalButton>
               width: widget.fullWidth ? double.infinity : null,
               padding: _padding,
               decoration: BoxDecoration(
-                color: _backgroundColor,
-                border: DesignSystem.border,
-                boxShadow: _shadow,
+                color: _backgroundColor(isDark),
+                border: DesignSystem.themeBorder(isDark),
+                boxShadow: _shadow(isDark),
               ),
               child: Row(
                 mainAxisSize: widget.fullWidth
@@ -143,7 +148,7 @@ class _BrutalButtonState extends State<BrutalButton>
                     widget.text.toUpperCase(),
                     style: DesignSystem.buttonStyle.copyWith(
                       fontSize: _fontSize,
-                      color: _textColor,
+                      color: _textColor(isDark),
                     ),
                   ),
                   if (widget.icon != null) ...[

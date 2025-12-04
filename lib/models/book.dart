@@ -20,6 +20,61 @@ class Book {
     this.filePath,
     this.dateAdded,
   });
+
+  // Convert Book to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'author': author,
+      'progress': progress,
+      'coverImagePath': coverImagePath,
+      'coverColor': coverColor?.value,
+      'filePath': filePath,
+      'dateAdded': dateAdded?.toIso8601String(),
+    };
+  }
+
+  // Create Book from JSON
+  factory Book.fromJson(Map<String, dynamic> json) {
+    return Book(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      author: json['author'] as String,
+      progress: (json['progress'] as num?)?.toDouble() ?? 0.0,
+      coverImagePath: json['coverImagePath'] as String?,
+      coverColor: json['coverColor'] != null
+          ? Color(json['coverColor'] as int)
+          : null,
+      filePath: json['filePath'] as String?,
+      dateAdded: json['dateAdded'] != null
+          ? DateTime.parse(json['dateAdded'] as String)
+          : null,
+    );
+  }
+
+  // Create a copy with updated fields
+  Book copyWith({
+    String? id,
+    String? title,
+    String? author,
+    double? progress,
+    String? coverImagePath,
+    Color? coverColor,
+    String? filePath,
+    DateTime? dateAdded,
+  }) {
+    return Book(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      author: author ?? this.author,
+      progress: progress ?? this.progress,
+      coverImagePath: coverImagePath ?? this.coverImagePath,
+      coverColor: coverColor ?? this.coverColor,
+      filePath: filePath ?? this.filePath,
+      dateAdded: dateAdded ?? this.dateAdded,
+    );
+  }
 }
 
 class Highlight {
@@ -27,17 +82,49 @@ class Highlight {
   final String bookId;
   final String bookTitle;
   final String text;
+  final String? chapter;
   final int page;
   final DateTime date;
+  final String? note;
+  final Color? highlightColor;
 
   Highlight({
     required this.id,
     required this.bookId,
     required this.bookTitle,
     required this.text,
+    this.chapter,
     required this.page,
     required this.date,
+    this.note,
+    this.highlightColor,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'bookId': bookId,
+    'bookTitle': bookTitle,
+    'text': text,
+    'chapter': chapter,
+    'page': page,
+    'date': date.toIso8601String(),
+    'note': note,
+    'highlightColor': highlightColor?.value,
+  };
+
+  factory Highlight.fromJson(Map<String, dynamic> json) => Highlight(
+    id: json['id'] as String,
+    bookId: json['bookId'] as String,
+    bookTitle: json['bookTitle'] as String,
+    text: json['text'] as String,
+    chapter: json['chapter'] as String?,
+    page: json['page'] as int,
+    date: DateTime.parse(json['date'] as String),
+    note: json['note'] as String?,
+    highlightColor: json['highlightColor'] != null
+        ? Color(json['highlightColor'] as int)
+        : null,
+  );
 }
 
 class Bookmark {
@@ -60,4 +147,28 @@ class Bookmark {
     this.coverImagePath,
     this.coverColor,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'bookId': bookId,
+    'bookTitle': bookTitle,
+    'chapter': chapter,
+    'page': page,
+    'date': date.toIso8601String(),
+    'coverImagePath': coverImagePath,
+    'coverColor': coverColor?.value,
+  };
+
+  factory Bookmark.fromJson(Map<String, dynamic> json) => Bookmark(
+    id: json['id'] as String,
+    bookId: json['bookId'] as String,
+    bookTitle: json['bookTitle'] as String,
+    chapter: json['chapter'] as String?,
+    page: json['page'] as int,
+    date: DateTime.parse(json['date'] as String),
+    coverImagePath: json['coverImagePath'] as String?,
+    coverColor: json['coverColor'] != null
+        ? Color(json['coverColor'] as int)
+        : null,
+  );
 }

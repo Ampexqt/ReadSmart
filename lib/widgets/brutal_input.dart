@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 
 class BrutalInput extends StatefulWidget {
   final String? label;
@@ -30,11 +32,18 @@ class _BrutalInputState extends State<BrutalInput> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.label != null) ...[
-          Text(widget.label!.toUpperCase(), style: DesignSystem.labelStyle),
+          Text(
+            widget.label!.toUpperCase(),
+            style: DesignSystem.labelStyle.copyWith(
+              color: DesignSystem.textColor(isDark),
+            ),
+          ),
           const SizedBox(height: DesignSystem.spacingSM),
         ],
         Focus(
@@ -43,11 +52,11 @@ class _BrutalInputState extends State<BrutalInput> {
           },
           child: Container(
             decoration: BoxDecoration(
-              color: DesignSystem.primaryWhite,
-              border: DesignSystem.border,
+              color: DesignSystem.cardColor(isDark),
+              border: DesignSystem.themeBorder(isDark),
               boxShadow: _isFocused
-                  ? DesignSystem.shadowMedium
-                  : DesignSystem.shadowSmall,
+                  ? DesignSystem.themeShadowSmall(isDark)
+                  : DesignSystem.themeShadowSmall(isDark),
             ),
             child: TextField(
               controller: widget.controller,
@@ -56,12 +65,12 @@ class _BrutalInputState extends State<BrutalInput> {
               keyboardType: widget.keyboardType,
               style: DesignSystem.textBase.copyWith(
                 fontWeight: FontWeight.w500,
-                color: DesignSystem.primaryBlack,
+                color: DesignSystem.textColor(isDark),
               ),
               decoration: InputDecoration(
                 hintText: widget.hintText,
                 hintStyle: DesignSystem.textBase.copyWith(
-                  color: DesignSystem.grey400,
+                  color: isDark ? DesignSystem.grey600 : DesignSystem.grey400,
                   fontWeight: FontWeight.w500,
                 ),
                 contentPadding: const EdgeInsets.all(DesignSystem.spacingMD),

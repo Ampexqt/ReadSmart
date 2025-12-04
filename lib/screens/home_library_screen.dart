@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/mobile_header.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/brutal_input.dart';
 import '../widgets/book_card.dart';
 import '../widgets/brutal_card.dart';
 import '../models/book.dart';
+import '../services/book_storage_service.dart';
 import 'add_book_modal.dart';
 
 class HomeLibraryScreen extends StatefulWidget {
@@ -17,45 +20,93 @@ class HomeLibraryScreen extends StatefulWidget {
 
 class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final List<Book> _books = [
-    Book(
-      id: '1',
-      title: 'The Great Gatsby',
-      author: 'F. Scott Fitzgerald',
-      progress: 0.65,
-      coverColor: DesignSystem.grey200,
-    ),
-    Book(
-      id: '2',
-      title: '1984',
-      author: 'George Orwell',
-      progress: 0.30,
-      coverColor: DesignSystem.grey300,
-    ),
-    Book(
-      id: '3',
-      title: 'To Kill a Mockingbird',
-      author: 'Harper Lee',
-      progress: 0.0,
-      coverColor: DesignSystem.grey200,
-    ),
-    Book(
-      id: '4',
-      title: 'Pride and Prejudice',
-      author: 'Jane Austen',
-      progress: 1.0,
-      coverColor: DesignSystem.grey300,
-    ),
-  ];
+  final BookStorageService _storageService = BookStorageService();
+  List<Book> _books = [];
+  List<Book> _filteredBooks = []; // Filtered list for search
+  bool _isLoading = true;
+  int? _bookmarksCount;
+  int? _highlightsCount;
 
-  void _showAddBookModal() {
-    showDialog(context: context, builder: (context) => const AddBookModal());
+  @override
+  void initState() {
+    super.initState();
+    _loadBooks();
+    _loadCounts();
+    // Add listener for search
+    _searchController.addListener(_filterBooks);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_filterBooks);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(HomeLibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadBooks(); // Reload when widget updates
+    _loadCounts();
+  }
+
+  Future<void> _loadBooks() async {
+    setState(() => _isLoading = true);
+    final books = await _storageService.loadBooks();
+    setState(() {
+      _books = books;
+      _filteredBooks = books; // Initialize filtered list
+      _isLoading = false;
+    });
+  }
+
+  void _filterBooks() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (query.isEmpty) {
+        _filteredBooks = _books;
+      } else {
+        _filteredBooks = _books.where((book) {
+          final titleMatch = book.title.toLowerCase().contains(query);
+          final authorMatch = book.author.toLowerCase().contains(query);
+          return titleMatch || authorMatch;
+        }).toList();
+      }
+    });
+  }
+
+  Future<void> _loadCounts() async {
+    final bookmarks = await _storageService.loadBookmarks();
+    final highlights = await _storageService.loadHighlights();
+    setState(() {
+      _bookmarksCount = bookmarks.length;
+      _highlightsCount = highlights.length;
+    });
+  }
+
+  void _showAddBookModal() async {
+    final result = await showDialog(
+      context: context,
+      builder: (context) => const AddBookModal(),
+    );
+
+    // Reload books if a new book was added
+    if (result == true) {
+      _loadBooks();
+    }
+  }
+
+  // Add this method to refresh manually
+  Future<void> _refresh() async {
+    await _loadBooks();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Scaffold(
-      backgroundColor: DesignSystem.primaryWhite,
+      backgroundColor: DesignSystem.backgroundColor(isDark),
       body: Container(
         constraints: const BoxConstraints(maxWidth: DesignSystem.maxWidth),
         margin: EdgeInsets.symmetric(
@@ -63,10 +114,10 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
               ? (MediaQuery.of(context).size.width - DesignSystem.maxWidth) / 2
               : 0,
         ),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            left: DesignSystem.borderSide,
-            right: DesignSystem.borderSide,
+            left: DesignSystem.themeBorderSide(isDark),
+            right: DesignSystem.themeBorderSide(isDark),
           ),
         ),
         child: Column(
@@ -80,12 +131,12 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: DesignSystem.primaryBlack,
-                    border: DesignSystem.border,
+                    color: DesignSystem.textColor(isDark),
+                    border: DesignSystem.themeBorder(isDark),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.add,
-                    color: DesignSystem.primaryWhite,
+                    color: DesignSystem.backgroundColor(isDark),
                     size: DesignSystem.iconSizeMD,
                   ),
                 ),
@@ -94,17 +145,17 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
             // Search Bar
             Container(
               padding: const EdgeInsets.all(DesignSystem.spacingMD),
-              decoration: const BoxDecoration(
-                color: DesignSystem.grey50,
-                border: Border(bottom: DesignSystem.borderSide),
+              decoration: BoxDecoration(
+                color: DesignSystem.backgroundColor(isDark),
+                border: Border(bottom: DesignSystem.themeBorderSide(isDark)),
               ),
               child: BrutalInput(
                 hintText: 'Search books...',
                 controller: _searchController,
-                suffixIcon: const Icon(
+                suffixIcon: Icon(
                   Icons.search,
                   size: DesignSystem.iconSizeMD,
-                  color: DesignSystem.primaryBlack,
+                  color: DesignSystem.textColor(isDark),
                 ),
               ),
             ),
@@ -122,21 +173,15 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
                   const SizedBox(width: DesignSystem.spacingMD),
                   Expanded(
                     child: _buildStatCard(
-                      number: _books
-                          .where((b) => b.progress > 0)
-                          .length
-                          .toString(),
-                      label: 'READING',
+                      number: (_bookmarksCount ?? 0).toString(),
+                      label: 'BOOKMARKS',
                     ),
                   ),
                   const SizedBox(width: DesignSystem.spacingMD),
                   Expanded(
                     child: _buildStatCard(
-                      number: _books
-                          .where((b) => b.progress == 1.0)
-                          .length
-                          .toString(),
-                      label: 'FINISHED',
+                      number: (_highlightsCount ?? 0).toString(),
+                      label: 'HIGHLIGHTS',
                     ),
                   ),
                 ],
@@ -144,26 +189,108 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
             ),
             // Book Grid
             Expanded(
-              child: GridView.builder(
-                padding: const EdgeInsets.all(DesignSystem.spacingMD),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: DesignSystem.spacingMD,
-                  mainAxisSpacing: DesignSystem.spacingMD,
-                  childAspectRatio: 0.7,
-                ),
-                itemCount: _books.length,
-                itemBuilder: (context, index) => BookCard(
-                  title: _books[index].title,
-                  author: _books[index].author,
-                  progress: _books[index].progress,
-                  coverColor: _books[index].coverColor,
-                  onTap: () {
-                    Navigator.of(
-                      context,
-                    ).pushNamed('/reader', arguments: _books[index]);
-                  },
-                ),
+              child: RefreshIndicator(
+                onRefresh: _refresh,
+                color: DesignSystem.primaryBlack,
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: DesignSystem.primaryBlack,
+                          strokeWidth: 3,
+                        ),
+                      )
+                    : _books.isEmpty
+                    ? SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.book_outlined,
+                                  size: 64,
+                                  color: DesignSystem.grey400,
+                                ),
+                                const SizedBox(height: DesignSystem.spacingMD),
+                                Text(
+                                  'NO BOOKS YET',
+                                  style: DesignSystem.textLG.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: DesignSystem.grey600,
+                                  ),
+                                ),
+                                const SizedBox(height: DesignSystem.spacingSM),
+                                Text(
+                                  'Tap the + button to add your first book',
+                                  style: DesignSystem.textSM.copyWith(
+                                    color: DesignSystem.grey500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : _filteredBooks.isEmpty
+                    ? SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 64,
+                                  color: DesignSystem.grey400,
+                                ),
+                                const SizedBox(height: DesignSystem.spacingMD),
+                                Text(
+                                  'NO BOOKS FOUND',
+                                  style: DesignSystem.textLG.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: DesignSystem.grey600,
+                                  ),
+                                ),
+                                const SizedBox(height: DesignSystem.spacingSM),
+                                Text(
+                                  'Try a different search term',
+                                  style: DesignSystem.textBase.copyWith(
+                                    color: DesignSystem.grey500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(DesignSystem.spacingMD),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: DesignSystem.spacingMD,
+                              mainAxisSpacing: DesignSystem.spacingMD,
+                              childAspectRatio: 0.55,
+                            ),
+                        itemCount: _filteredBooks.length,
+                        itemBuilder: (context, index) => BookCard(
+                          title: _filteredBooks[index].title,
+                          author: _filteredBooks[index].author,
+                          progress: _filteredBooks[index].progress,
+                          coverColor: _filteredBooks[index].coverColor,
+                          coverImagePath: _filteredBooks[index].coverImagePath,
+                          onTap: () {
+                            Navigator.of(context).pushNamed(
+                              '/reader',
+                              arguments: _filteredBooks[index],
+                            );
+                          },
+                        ),
+                      ),
               ),
             ),
           ],
@@ -185,19 +312,36 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
   }
 
   Widget _buildStatCard({required String number, required String label}) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return BrutalCard(
-      padding: const EdgeInsets.all(DesignSystem.spacingMD),
+      padding: const EdgeInsets.symmetric(
+        horizontal: DesignSystem.spacingSM,
+        vertical: DesignSystem.spacingMD,
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             number,
-            style: DesignSystem.text2XL.copyWith(fontWeight: FontWeight.w900),
+            style: DesignSystem.text3XL.copyWith(
+              fontWeight: FontWeight.w900,
+              color: DesignSystem.textColor(isDark),
+            ),
           ),
           const SizedBox(height: DesignSystem.spacingXS),
-          Text(
-            label,
-            style: DesignSystem.textXS.copyWith(fontWeight: FontWeight.w700),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: DesignSystem.textXS.copyWith(
+                fontWeight: FontWeight.w700,
+                color: DesignSystem.textColor(isDark),
+                letterSpacing: 0.5,
+              ),
+            ),
           ),
         ],
       ),

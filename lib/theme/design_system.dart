@@ -3,7 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Neobrutalism Design System for ReadSmart
 class DesignSystem {
-  // Colors
+  // Current Font Family (set from main.dart)
+  static String? currentFontFamily;
+
+  // Light Mode Colors
   static const Color primaryBlack = Color(0xFF000000);
   static const Color primaryWhite = Color(0xFFFFFFFF);
 
@@ -19,6 +22,12 @@ class DesignSystem {
   static const Color grey900 = Color(0xFF171717);
 
   static const Color yellow100 = Color(0xFFFEF3C7);
+
+  // Dark Mode Colors (Only 3 colors - easy on eyes)
+  static const Color darkBackground = Color(0xFF1A1A1A); // Dark gray background
+  static const Color darkCard = Color(0xFF2A2A2A); // Slightly lighter for cards
+  static const Color darkText = Color(0xFFE5E5E5); // Soft white for text
+  static const Color darkBorder = Color(0xFF404040); // Medium gray borders
 
   // Spacing
   static const double spacingXS = 4.0;
@@ -79,7 +88,42 @@ class DesignSystem {
     double letterSpacing = -0.02,
     double? height,
     TextDecoration? decoration,
+    String? fontFamily,
   }) {
+    // Use passed fontFamily, or fallback to global currentFontFamily
+    final effectiveFontFamily = fontFamily ?? currentFontFamily;
+
+    // If a specific font family is provided, use it
+    if (effectiveFontFamily == 'Lora') {
+      return GoogleFonts.lora(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+        decoration: decoration,
+      );
+    } else if (effectiveFontFamily == 'Merriweather') {
+      return GoogleFonts.merriweather(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+        decoration: decoration,
+      );
+    } else if (effectiveFontFamily == 'Crimson Text') {
+      return GoogleFonts.crimsonText(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+        decoration: decoration,
+      );
+    }
+
+    // Default to Space Grotesk
     return GoogleFonts.spaceGrotesk(
       fontSize: fontSize,
       fontWeight: fontWeight,
@@ -128,4 +172,32 @@ class DesignSystem {
 
   // Stroke Width
   static const double strokeWidth = 3.0;
+
+  // Theme-aware color getters
+  static Color backgroundColor(bool isDark) =>
+      isDark ? darkBackground : primaryWhite;
+
+  static Color cardColor(bool isDark) => isDark ? darkCard : primaryWhite;
+
+  static Color textColor(bool isDark) => isDark ? darkText : primaryBlack;
+
+  static Color borderColor(bool isDark) => isDark ? darkBorder : primaryBlack;
+
+  static Color invertedColor(bool isDark) =>
+      isDark ? primaryWhite : primaryBlack;
+
+  static BorderSide themeBorderSide(bool isDark) =>
+      BorderSide(color: borderColor(isDark), width: borderWidth);
+
+  static Border themeBorder(bool isDark) =>
+      Border.fromBorderSide(themeBorderSide(isDark));
+
+  static List<BoxShadow> themeShadowSmall(bool isDark) => [
+    BoxShadow(
+      color: isDark ? darkBorder : primaryBlack,
+      offset: const Offset(4, 4),
+      blurRadius: 0,
+      spreadRadius: 0,
+    ),
+  ];
 }
