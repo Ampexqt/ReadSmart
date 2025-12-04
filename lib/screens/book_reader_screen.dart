@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:epub_view/epub_view.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -6,6 +7,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/mobile_header.dart';
 import '../models/book.dart';
 import '../services/book_storage_service.dart';
@@ -232,8 +234,10 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Scaffold(
-      backgroundColor: DesignSystem.primaryWhite,
+      backgroundColor: DesignSystem.backgroundColor(isDark),
       drawer: _buildDrawer(),
       body: Container(
         constraints: const BoxConstraints(maxWidth: DesignSystem.maxWidth),
@@ -242,10 +246,10 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
               ? (MediaQuery.of(context).size.width - DesignSystem.maxWidth) / 2
               : 0,
         ),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(
-            left: DesignSystem.borderSide,
-            right: DesignSystem.borderSide,
+            left: DesignSystem.themeBorderSide(isDark),
+            right: DesignSystem.themeBorderSide(isDark),
           ),
         ),
         child: Column(
@@ -254,12 +258,29 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
             MobileHeader(
               title: _book?.title ?? 'READING',
               onBack: () => Navigator.of(context).pop(),
-              rightAction: Builder(
-                builder: (context) => IconButton(
-                  icon: const Icon(Icons.list),
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                  color: DesignSystem.primaryBlack,
-                ),
+              rightAction: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Bookmark button (only for EPUB)
+                  if (_book != null &&
+                      _book!.filePath!.toLowerCase().endsWith('.epub'))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: _buildControlButton(
+                        icon: Icons.bookmark,
+                        isActive: _isBookmarked,
+                        onTap: _toggleBookmark,
+                      ),
+                    ),
+                  // TOC button
+                  Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.list),
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                      color: DesignSystem.textColor(isDark),
+                    ),
+                  ),
+                ],
               ),
             ),
             // Content Area
@@ -322,75 +343,64 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
   }
 
   Widget _buildBottomBar() {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Container(
       padding: const EdgeInsets.all(DesignSystem.spacingMD),
-      decoration: const BoxDecoration(
-        color: DesignSystem.primaryWhite,
-        border: Border(top: DesignSystem.borderSide),
+      decoration: BoxDecoration(
+        color: DesignSystem.cardColor(isDark),
+        border: Border(top: DesignSystem.themeBorderSide(isDark)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Control buttons (Bookmark & Highlight)
-          if (_book != null && _book!.filePath!.toLowerCase().endsWith('.epub'))
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildControlButton(
-                  icon: Icons.bookmark,
-                  isActive: _isBookmarked,
-                  onTap: _toggleBookmark,
-                ),
-                const SizedBox(width: DesignSystem.spacingMD),
-                _buildControlButton(
-                  icon: Icons.format_quote,
-                  isActive: false,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Select text in the reader to create highlights!',
-                        ),
-                        duration: Duration(seconds: 2),
-                        backgroundColor: DesignSystem.primaryBlack,
-                      ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          const SizedBox(height: DesignSystem.spacingMD),
-          // Navigation buttons
+          // Navigation buttons only
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               ElevatedButton.icon(
                 onPressed: _prevChapter,
-                icon: const Icon(
+                icon: Icon(
                   Icons.chevron_left,
-                  color: DesignSystem.primaryWhite,
+                  color: isDark
+                      ? DesignSystem.darkBackground
+                      : DesignSystem.primaryWhite,
                 ),
-                label: const Text(
+                label: Text(
                   'PREV',
-                  style: TextStyle(color: DesignSystem.primaryWhite),
+                  style: TextStyle(
+                    color: isDark
+                        ? DesignSystem.darkBackground
+                        : DesignSystem.primaryWhite,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: DesignSystem.primaryBlack,
+                  backgroundColor: isDark
+                      ? DesignSystem.darkText
+                      : DesignSystem.primaryBlack,
                   shape: const RoundedRectangleBorder(),
                 ),
               ),
               ElevatedButton.icon(
                 onPressed: _nextChapter,
-                icon: const Icon(
+                icon: Icon(
                   Icons.chevron_right,
-                  color: DesignSystem.primaryWhite,
+                  color: isDark
+                      ? DesignSystem.darkBackground
+                      : DesignSystem.primaryWhite,
                 ),
-                label: const Text(
+                label: Text(
                   'NEXT',
-                  style: TextStyle(color: DesignSystem.primaryWhite),
+                  style: TextStyle(
+                    color: isDark
+                        ? DesignSystem.darkBackground
+                        : DesignSystem.primaryWhite,
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: DesignSystem.primaryBlack,
+                  backgroundColor: isDark
+                      ? DesignSystem.darkText
+                      : DesignSystem.primaryBlack,
                   shape: const RoundedRectangleBorder(),
                 ),
               ),
@@ -406,6 +416,8 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
     required bool isActive,
     required VoidCallback onTap,
   }) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -413,16 +425,16 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
         height: 40,
         decoration: BoxDecoration(
           color: isActive
-              ? DesignSystem.primaryBlack
-              : DesignSystem.primaryWhite,
-          border: DesignSystem.border,
+              ? DesignSystem.textColor(isDark)
+              : DesignSystem.cardColor(isDark),
+          border: DesignSystem.themeBorder(isDark),
         ),
         child: Icon(
           icon,
           size: DesignSystem.iconSizeMD,
           color: isActive
-              ? DesignSystem.primaryWhite
-              : DesignSystem.primaryBlack,
+              ? DesignSystem.backgroundColor(isDark)
+              : DesignSystem.textColor(isDark),
         ),
       ),
     );
@@ -463,29 +475,54 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
     } else if (isEpub) {
       if (_epubBook != null && _allChapters.isNotEmpty) {
         // Render current chapter HTML
+        final isDark = context.watch<ThemeProvider>().isDarkMode;
         final currentChapter = _allChapters[_currentEpubChapterIndex];
-        return SingleChildScrollView(
-          controller: _epubScrollController,
-          padding: const EdgeInsets.all(DesignSystem.spacingLG),
-          child: SelectionArea(
-            onSelectionChanged: (selectedTextValue) {
-              // Capture selected text
-              if (selectedTextValue != null) {
-                final selectedText = selectedTextValue.plainText;
-                if (selectedText.isNotEmpty) {
-                  _handleTextSelection(selectedText);
+        return Container(
+          color: DesignSystem.backgroundColor(isDark),
+          child: SingleChildScrollView(
+            controller: _epubScrollController,
+            padding: const EdgeInsets.all(DesignSystem.spacingLG),
+            child: SelectionArea(
+              onSelectionChanged: (selectedTextValue) {
+                // Capture selected text
+                if (selectedTextValue != null) {
+                  final selectedText = selectedTextValue.plainText;
+                  if (selectedText.isNotEmpty) {
+                    _handleTextSelection(selectedText);
+                  }
                 }
-              }
-            },
-            child: Html(
-              data: currentChapter.HtmlContent ?? "<p>No content</p>",
-              style: {
-                "body": Style(
-                  fontSize: FontSize(16.0),
-                  lineHeight: LineHeight(1.6),
-                  fontFamily: 'Inter',
-                ),
               },
+              child: Html(
+                data: currentChapter.HtmlContent ?? "<p>No content</p>",
+                style: {
+                  "body": Style(
+                    fontSize: FontSize(18.0),
+                    lineHeight: LineHeight(1.8),
+                    fontFamily: 'Inter',
+                    color: isDark
+                        ? DesignSystem.darkText
+                        : DesignSystem.primaryBlack,
+                  ),
+                  "p": Style(
+                    color: isDark
+                        ? DesignSystem.darkText
+                        : DesignSystem.primaryBlack,
+                    margin: Margins.only(bottom: 16),
+                  ),
+                  "h1": Style(
+                    color: isDark
+                        ? DesignSystem.darkText
+                        : DesignSystem.primaryBlack,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  "h2": Style(
+                    color: isDark
+                        ? DesignSystem.darkText
+                        : DesignSystem.primaryBlack,
+                    fontWeight: FontWeight.w800,
+                  ),
+                },
+              ),
             ),
           ),
         );
