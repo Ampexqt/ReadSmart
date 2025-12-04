@@ -106,17 +106,17 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
             // Search Bar
             Container(
               padding: const EdgeInsets.all(DesignSystem.spacingMD),
-              decoration: const BoxDecoration(
-                color: DesignSystem.grey50,
-                border: Border(bottom: DesignSystem.borderSide),
+              decoration: BoxDecoration(
+                color: DesignSystem.backgroundColor(isDark),
+                border: Border(bottom: DesignSystem.themeBorderSide(isDark)),
               ),
               child: BrutalInput(
                 hintText: 'Search books...',
                 controller: _searchController,
-                suffixIcon: const Icon(
+                suffixIcon: Icon(
                   Icons.search,
                   size: DesignSystem.iconSizeMD,
-                  color: DesignSystem.primaryBlack,
+                  color: DesignSystem.textColor(isDark),
                 ),
               ),
             ),

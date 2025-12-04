@@ -73,10 +73,10 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
             // Header
             MobileHeader(
               title: 'HIGHLIGHTS',
-              rightAction: const Icon(
+              rightAction: Icon(
                 Icons.filter_list,
                 size: DesignSystem.iconSizeLG,
-                color: DesignSystem.primaryBlack,
+                color: DesignSystem.textColor(isDark),
               ),
             ),
             // Stats Card
@@ -225,6 +225,9 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                                           style: DesignSystem.textBase.copyWith(
                                             fontWeight: FontWeight.w500,
                                             height: 1.5,
+                                            color: DesignSystem.textColor(
+                                              isDark,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -274,6 +277,7 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                                         highlight.bookTitle,
                                         style: DesignSystem.textSM.copyWith(
                                           fontWeight: FontWeight.w700,
+                                          color: DesignSystem.textColor(isDark),
                                         ),
                                       ),
                                       const SizedBox(
@@ -283,7 +287,9 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                                         '${highlight.chapter ?? 'Chapter ${highlight.page + 1}'} • ${_formatDate(highlight.date)}',
                                         style: DesignSystem.textXS.copyWith(
                                           fontWeight: FontWeight.w500,
-                                          color: DesignSystem.grey600,
+                                          color: isDark
+                                              ? DesignSystem.grey500
+                                              : DesignSystem.grey600,
                                         ),
                                       ),
                                     ],

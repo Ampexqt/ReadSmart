@@ -161,6 +161,8 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   }
 
   Widget _buildBookmarkCard(Bookmark bookmark) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Dismissible(
       key: Key(bookmark.id),
       direction: DismissDirection.endToStart,
@@ -169,7 +171,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
         padding: const EdgeInsets.only(right: DesignSystem.spacingLG),
         decoration: BoxDecoration(
           color: Colors.red,
-          border: DesignSystem.border,
+          border: DesignSystem.themeBorder(isDark),
         ),
         child: const Icon(
           Icons.delete,
@@ -185,9 +187,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
         child: Container(
           padding: const EdgeInsets.all(DesignSystem.spacingMD),
           decoration: BoxDecoration(
-            color: DesignSystem.primaryWhite,
-            border: DesignSystem.border,
-            boxShadow: DesignSystem.shadowSmall,
+            color: DesignSystem.cardColor(isDark),
+            border: DesignSystem.themeBorder(isDark),
+            boxShadow: DesignSystem.themeShadowSmall(isDark),
           ),
           child: Row(
             children: [
@@ -197,14 +199,16 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                 height: 64,
                 decoration: BoxDecoration(
                   color: bookmark.coverColor ?? DesignSystem.grey200,
-                  border: DesignSystem.border,
+                  border: DesignSystem.themeBorder(isDark),
                 ),
                 child: bookmark.coverImagePath != null
                     ? Image.asset(bookmark.coverImagePath!, fit: BoxFit.cover)
-                    : const Icon(
+                    : Icon(
                         Icons.menu_book,
                         size: DesignSystem.iconSizeLG,
-                        color: DesignSystem.primaryBlack,
+                        color: isDark
+                            ? DesignSystem.grey600
+                            : DesignSystem.primaryBlack,
                       ),
               ),
               const SizedBox(width: DesignSystem.spacingMD),
@@ -217,6 +221,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                       bookmark.bookTitle,
                       style: DesignSystem.textBase.copyWith(
                         fontWeight: FontWeight.w900,
+                        color: DesignSystem.textColor(isDark),
                       ),
                     ),
                     if (bookmark.chapter != null) ...[
@@ -225,7 +230,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                         bookmark.chapter!,
                         style: DesignSystem.textSM.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: DesignSystem.grey600,
+                          color: isDark
+                              ? DesignSystem.grey500
+                              : DesignSystem.grey600,
                         ),
                       ),
                     ],
@@ -236,6 +243,7 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                           'PAGE ${bookmark.page}',
                           style: DesignSystem.textXS.copyWith(
                             fontWeight: FontWeight.w700,
+                            color: DesignSystem.textColor(isDark),
                           ),
                         ),
                         const SizedBox(width: DesignSystem.spacingSM),
@@ -243,7 +251,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                           '• ${_formatDate(bookmark.date)}',
                           style: DesignSystem.textXS.copyWith(
                             fontWeight: FontWeight.w500,
-                            color: DesignSystem.grey600,
+                            color: isDark
+                                ? DesignSystem.grey500
+                                : DesignSystem.grey600,
                           ),
                         ),
                       ],
@@ -252,9 +262,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
                 ),
               ),
               // Arrow icon to indicate it's tappable
-              const Icon(
+              Icon(
                 Icons.chevron_right,
-                color: DesignSystem.grey600,
+                color: isDark ? DesignSystem.grey500 : DesignSystem.grey600,
                 size: DesignSystem.iconSizeLG,
               ),
             ],

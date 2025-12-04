@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 
 class BrutalModal extends StatelessWidget {
   final String title;
@@ -17,6 +19,8 @@ class BrutalModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -29,9 +33,9 @@ class BrutalModal extends StatelessWidget {
             ),
             margin: const EdgeInsets.all(DesignSystem.spacingMD),
             decoration: BoxDecoration(
-              color: DesignSystem.primaryWhite,
-              border: DesignSystem.border,
-              boxShadow: DesignSystem.shadowLarge,
+              color: DesignSystem.cardColor(isDark),
+              border: DesignSystem.themeBorder(isDark),
+              boxShadow: DesignSystem.themeShadowSmall(isDark),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -39,9 +43,11 @@ class BrutalModal extends StatelessWidget {
                 // Header
                 Container(
                   padding: const EdgeInsets.all(DesignSystem.spacingLG),
-                  decoration: const BoxDecoration(
-                    color: DesignSystem.grey50,
-                    border: Border(bottom: DesignSystem.borderSide),
+                  decoration: BoxDecoration(
+                    color: DesignSystem.backgroundColor(isDark),
+                    border: Border(
+                      bottom: DesignSystem.themeBorderSide(isDark),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -51,6 +57,7 @@ class BrutalModal extends StatelessWidget {
                           style: DesignSystem.text2XL.copyWith(
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.02,
+                            color: DesignSystem.textColor(isDark),
                           ),
                         ),
                       ),
@@ -60,13 +67,13 @@ class BrutalModal extends StatelessWidget {
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: DesignSystem.primaryWhite,
-                            border: DesignSystem.border,
+                            color: DesignSystem.cardColor(isDark),
+                            border: DesignSystem.themeBorder(isDark),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.close,
                             size: DesignSystem.iconSizeMD,
-                            color: DesignSystem.primaryBlack,
+                            color: DesignSystem.textColor(isDark),
                           ),
                         ),
                       ),
@@ -84,8 +91,8 @@ class BrutalModal extends StatelessWidget {
                 if (actions != null && actions!.isNotEmpty)
                   Container(
                     padding: const EdgeInsets.all(DesignSystem.spacingLG),
-                    decoration: const BoxDecoration(
-                      border: Border(top: DesignSystem.borderSide),
+                    decoration: BoxDecoration(
+                      border: Border(top: DesignSystem.themeBorderSide(isDark)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,

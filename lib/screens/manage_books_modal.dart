@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/brutal_modal.dart';
 import '../widgets/brutal_button.dart';
 import '../models/book.dart';
@@ -53,10 +55,12 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
   }
 
   void _showDeleteConfirmation(Book book) {
+    final isDark = context.read<ThemeProvider>().isDarkMode;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: DesignSystem.primaryWhite,
+        backgroundColor: DesignSystem.cardColor(isDark),
         shape: const RoundedRectangleBorder(),
         contentPadding: const EdgeInsets.all(DesignSystem.spacingLG),
         content: Column(
@@ -65,12 +69,17 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
           children: [
             Text(
               'DELETE BOOK?',
-              style: DesignSystem.text2XL.copyWith(fontWeight: FontWeight.w900),
+              style: DesignSystem.text2XL.copyWith(
+                fontWeight: FontWeight.w900,
+                color: DesignSystem.textColor(isDark),
+              ),
             ),
             const SizedBox(height: DesignSystem.spacingMD),
             Text(
               'Are you sure you want to delete "${book.title}"? This action cannot be undone.',
-              style: DesignSystem.textBase,
+              style: DesignSystem.textBase.copyWith(
+                color: DesignSystem.textColor(isDark),
+              ),
             ),
           ],
         ),
@@ -95,15 +104,17 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return BrutalModal(
       title: 'MANAGE BOOKS',
       onClose: () => Navigator.of(context).pop(_hasChanges),
       child: _isLoading
-          ? const Center(
+          ? Center(
               child: Padding(
-                padding: EdgeInsets.all(DesignSystem.spacingXL),
+                padding: const EdgeInsets.all(DesignSystem.spacingXL),
                 child: CircularProgressIndicator(
-                  color: DesignSystem.primaryBlack,
+                  color: DesignSystem.textColor(isDark),
                 ),
               ),
             )
@@ -114,17 +125,21 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.book_outlined,
                       size: 48,
-                      color: DesignSystem.grey400,
+                      color: isDark
+                          ? DesignSystem.grey500
+                          : DesignSystem.grey400,
                     ),
                     const SizedBox(height: DesignSystem.spacingMD),
                     Text(
                       'NO BOOKS',
                       style: DesignSystem.textLG.copyWith(
                         fontWeight: FontWeight.w900,
-                        color: DesignSystem.grey600,
+                        color: isDark
+                            ? DesignSystem.grey500
+                            : DesignSystem.grey600,
                       ),
                     ),
                   ],
@@ -141,9 +156,9 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
                   child: Container(
                     padding: const EdgeInsets.all(DesignSystem.spacingSM),
                     decoration: BoxDecoration(
-                      color: DesignSystem.primaryWhite,
-                      border: DesignSystem.border,
-                      boxShadow: DesignSystem.shadowSmall,
+                      color: DesignSystem.cardColor(isDark),
+                      border: DesignSystem.themeBorder(isDark),
+                      boxShadow: DesignSystem.themeShadowSmall(isDark),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -154,17 +169,19 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
                           height: 70,
                           decoration: BoxDecoration(
                             color: book.coverColor ?? DesignSystem.grey200,
-                            border: DesignSystem.border,
+                            border: DesignSystem.themeBorder(isDark),
                           ),
                           child: book.coverImagePath != null
                               ? Image.asset(
                                   book.coverImagePath!,
                                   fit: BoxFit.cover,
                                 )
-                              : const Icon(
+                              : Icon(
                                   Icons.menu_book,
                                   size: DesignSystem.iconSizeMD,
-                                  color: DesignSystem.primaryBlack,
+                                  color: isDark
+                                      ? DesignSystem.grey600
+                                      : DesignSystem.primaryBlack,
                                 ),
                         ),
                         const SizedBox(width: DesignSystem.spacingSM),
@@ -178,6 +195,7 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
                                 book.title,
                                 style: DesignSystem.textSM.copyWith(
                                   fontWeight: FontWeight.w700,
+                                  color: DesignSystem.textColor(isDark),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -187,7 +205,9 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
                                 book.author,
                                 style: DesignSystem.textXS.copyWith(
                                   fontWeight: FontWeight.w500,
-                                  color: DesignSystem.grey600,
+                                  color: isDark
+                                      ? DesignSystem.grey500
+                                      : DesignSystem.grey600,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -219,13 +239,14 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
                                 child: Container(
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: DesignSystem.primaryWhite,
-                                    border: DesignSystem.border,
+                                    color: DesignSystem.cardColor(isDark),
+                                    border: DesignSystem.themeBorder(isDark),
                                   ),
                                   child: Text(
                                     'EDIT',
                                     style: DesignSystem.textXS.copyWith(
                                       fontWeight: FontWeight.w700,
+                                      color: DesignSystem.textColor(isDark),
                                     ),
                                   ),
                                 ),
@@ -240,13 +261,14 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
                                 child: Container(
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    color: DesignSystem.primaryWhite,
-                                    border: DesignSystem.border,
+                                    color: DesignSystem.cardColor(isDark),
+                                    border: DesignSystem.themeBorder(isDark),
                                   ),
                                   child: Text(
                                     'DELETE',
                                     style: DesignSystem.textXS.copyWith(
                                       fontWeight: FontWeight.w700,
+                                      color: DesignSystem.textColor(isDark),
                                     ),
                                   ),
                                 ),
