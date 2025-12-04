@@ -29,13 +29,28 @@ class ReadSmartApp extends StatelessWidget {
       builder: (context, themeProvider, _) {
         final isDark = themeProvider.isDarkMode;
 
+        // Update global design system font
+        DesignSystem.currentFontFamily = themeProvider.getFontFamilyName();
+
+        // Get the appropriate text theme based on font family
+        TextTheme getTextTheme() {
+          switch (themeProvider.fontFamily) {
+            case FontFamily.lora:
+              return GoogleFonts.loraTextTheme();
+            case FontFamily.merriweather:
+              return GoogleFonts.merriweatherTextTheme();
+            case FontFamily.crimsonText:
+              return GoogleFonts.crimsonTextTextTheme();
+          }
+        }
+
         return MaterialApp(
           title: 'ReadSmart',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             primaryColor: DesignSystem.textColor(isDark),
             scaffoldBackgroundColor: DesignSystem.backgroundColor(isDark),
-            textTheme: GoogleFonts.spaceGroteskTextTheme().apply(
+            textTheme: getTextTheme().apply(
               bodyColor: DesignSystem.textColor(isDark),
               displayColor: DesignSystem.textColor(isDark),
             ),

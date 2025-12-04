@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
 import '../widgets/brutal_button.dart';
+import '../providers/theme_provider.dart';
 
 class HighlightDialog extends StatefulWidget {
   final String selectedText;
@@ -38,11 +40,16 @@ class _HighlightDialogState extends State<HighlightDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Dialog(
-      backgroundColor: DesignSystem.primaryWhite,
+      backgroundColor: DesignSystem.cardColor(isDark),
       shape: const RoundedRectangleBorder(),
       child: Container(
-        decoration: BoxDecoration(border: DesignSystem.border),
+        decoration: BoxDecoration(
+          border: DesignSystem.themeBorder(isDark),
+          color: DesignSystem.cardColor(isDark),
+        ),
         padding: const EdgeInsets.all(DesignSystem.spacingLG),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -51,16 +58,17 @@ class _HighlightDialogState extends State<HighlightDialog> {
             // Title
             Row(
               children: [
-                const Icon(
+                Icon(
                   Icons.format_quote,
                   size: DesignSystem.iconSizeLG,
-                  color: DesignSystem.primaryBlack,
+                  color: DesignSystem.textColor(isDark),
                 ),
                 const SizedBox(width: DesignSystem.spacingSM),
                 Text(
                   'CREATE HIGHLIGHT',
                   style: DesignSystem.textLG.copyWith(
                     fontWeight: FontWeight.w900,
+                    color: DesignSystem.textColor(isDark),
                   ),
                 ),
               ],
@@ -72,13 +80,14 @@ class _HighlightDialogState extends State<HighlightDialog> {
               padding: const EdgeInsets.all(DesignSystem.spacingMD),
               decoration: BoxDecoration(
                 color: _selectedColor?.withOpacity(0.3),
-                border: DesignSystem.border,
+                border: DesignSystem.themeBorder(isDark),
               ),
               child: Text(
                 widget.selectedText,
                 style: DesignSystem.textBase.copyWith(
                   fontWeight: FontWeight.w500,
                   height: 1.5,
+                  color: DesignSystem.textColor(isDark),
                 ),
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
@@ -89,7 +98,10 @@ class _HighlightDialogState extends State<HighlightDialog> {
             // Color Picker
             Text(
               'HIGHLIGHT COLOR',
-              style: DesignSystem.textSM.copyWith(fontWeight: FontWeight.w700),
+              style: DesignSystem.textSM.copyWith(
+                fontWeight: FontWeight.w700,
+                color: DesignSystem.textColor(isDark),
+              ),
             ),
             const SizedBox(height: DesignSystem.spacingSM),
             Row(
@@ -107,14 +119,15 @@ class _HighlightDialogState extends State<HighlightDialog> {
                       decoration: BoxDecoration(
                         color: color,
                         border: Border.all(
-                          color: DesignSystem.primaryBlack,
+                          color: DesignSystem.textColor(isDark),
                           width: isSelected ? 3 : 2,
                         ),
                       ),
                       child: isSelected
-                          ? const Icon(
+                          ? Icon(
                               Icons.check,
-                              color: DesignSystem.primaryBlack,
+                              color: DesignSystem
+                                  .primaryBlack, // Checkmark always black on colors
                               size: DesignSystem.iconSizeMD,
                             )
                           : null,
@@ -128,38 +141,46 @@ class _HighlightDialogState extends State<HighlightDialog> {
             // Note Input
             Text(
               'ADD NOTE (OPTIONAL)',
-              style: DesignSystem.textSM.copyWith(fontWeight: FontWeight.w700),
+              style: DesignSystem.textSM.copyWith(
+                fontWeight: FontWeight.w700,
+                color: DesignSystem.textColor(isDark),
+              ),
             ),
             const SizedBox(height: DesignSystem.spacingSM),
             TextField(
               controller: _noteController,
               maxLines: 3,
+              style: DesignSystem.textBase.copyWith(
+                color: DesignSystem.textColor(isDark),
+              ),
               decoration: InputDecoration(
                 hintText: 'Add your thoughts...',
-                border: const OutlineInputBorder(
+                hintStyle: TextStyle(
+                  color: isDark ? DesignSystem.grey500 : DesignSystem.grey400,
+                ),
+                border: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color: DesignSystem.primaryBlack,
+                    color: DesignSystem.textColor(isDark),
                     width: 2,
                   ),
                   borderRadius: BorderRadius.zero,
                 ),
-                enabledBorder: const OutlineInputBorder(
+                enabledBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color: DesignSystem.primaryBlack,
+                    color: DesignSystem.textColor(isDark),
                     width: 2,
                   ),
                   borderRadius: BorderRadius.zero,
                 ),
-                focusedBorder: const OutlineInputBorder(
+                focusedBorder: OutlineInputBorder(
                   borderSide: BorderSide(
-                    color: DesignSystem.primaryBlack,
+                    color: DesignSystem.textColor(isDark),
                     width: 3,
                   ),
                   borderRadius: BorderRadius.zero,
                 ),
                 contentPadding: const EdgeInsets.all(DesignSystem.spacingMD),
               ),
-              style: DesignSystem.textBase,
             ),
             const SizedBox(height: DesignSystem.spacingLG),
 

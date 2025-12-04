@@ -106,6 +106,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         ]),
                         const SizedBox(height: DesignSystem.spacingLG),
+                        _buildSection('FONT STYLE', [
+                          Consumer<ThemeProvider>(
+                            builder: (context, themeProvider, _) {
+                              return Column(
+                                children: [
+                                  _buildFontOption(
+                                    'Lora',
+                                    FontFamily.lora,
+                                    themeProvider.fontFamily,
+                                    (fontFamily) {
+                                      themeProvider.setFontFamily(fontFamily);
+                                    },
+                                  ),
+                                  const SizedBox(
+                                    height: DesignSystem.spacingSM,
+                                  ),
+                                  _buildFontOption(
+                                    'Merriweather',
+                                    FontFamily.merriweather,
+                                    themeProvider.fontFamily,
+                                    (fontFamily) {
+                                      themeProvider.setFontFamily(fontFamily);
+                                    },
+                                  ),
+                                  const SizedBox(
+                                    height: DesignSystem.spacingSM,
+                                  ),
+                                  _buildFontOption(
+                                    'Crimson Text',
+                                    FontFamily.crimsonText,
+                                    themeProvider.fontFamily,
+                                    (fontFamily) {
+                                      themeProvider.setFontFamily(fontFamily);
+                                    },
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ]),
+                        const SizedBox(height: DesignSystem.spacingLG),
                         _buildSection('NOTIFICATIONS', [
                           _buildSettingTile(
                             icon: Icons.notifications,
@@ -271,6 +312,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFontOption(
+    String fontName,
+    FontFamily fontFamily,
+    FontFamily currentFontFamily,
+    ValueChanged<FontFamily> onChanged,
+  ) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    final isSelected = fontFamily == currentFontFamily;
+
+    return GestureDetector(
+      onTap: () => onChanged(fontFamily),
+      child: Container(
+        padding: const EdgeInsets.all(DesignSystem.spacingMD),
+        decoration: BoxDecoration(
+          color: DesignSystem.cardColor(isDark),
+          border: DesignSystem.themeBorder(isDark),
+          boxShadow: DesignSystem.themeShadowSmall(isDark),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                fontName,
+                style: DesignSystem.textStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: DesignSystem.textColor(isDark),
+                  fontFamily: fontName,
+                ),
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check,
+                size: DesignSystem.iconSizeLG,
+                color: DesignSystem.textColor(isDark),
+              ),
           ],
         ),
       ),

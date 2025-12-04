@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 /// Neobrutalism Design System for ReadSmart
 class DesignSystem {
+  // Current Font Family (set from main.dart)
+  static String? currentFontFamily;
+
   // Light Mode Colors
   static const Color primaryBlack = Color(0xFF000000);
   static const Color primaryWhite = Color(0xFFFFFFFF);
@@ -85,7 +88,42 @@ class DesignSystem {
     double letterSpacing = -0.02,
     double? height,
     TextDecoration? decoration,
+    String? fontFamily,
   }) {
+    // Use passed fontFamily, or fallback to global currentFontFamily
+    final effectiveFontFamily = fontFamily ?? currentFontFamily;
+
+    // If a specific font family is provided, use it
+    if (effectiveFontFamily == 'Lora') {
+      return GoogleFonts.lora(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+        decoration: decoration,
+      );
+    } else if (effectiveFontFamily == 'Merriweather') {
+      return GoogleFonts.merriweather(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+        decoration: decoration,
+      );
+    } else if (effectiveFontFamily == 'Crimson Text') {
+      return GoogleFonts.crimsonText(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+        decoration: decoration,
+      );
+    }
+
+    // Default to Space Grotesk
     return GoogleFonts.spaceGrotesk(
       fontSize: fontSize,
       fontWeight: fontWeight,

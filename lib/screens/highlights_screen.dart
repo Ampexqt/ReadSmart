@@ -307,16 +307,20 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                                               ),
                                               decoration: BoxDecoration(
                                                 border: Border.all(
-                                                  color: DesignSystem.grey300,
+                                                  color: isDark
+                                                      ? DesignSystem.grey600
+                                                      : DesignSystem.grey300,
                                                   width: 1,
                                                 ),
                                               ),
                                               child: Row(
                                                 children: [
-                                                  const Icon(
+                                                  Icon(
                                                     Icons.note,
                                                     size: 16,
-                                                    color: DesignSystem.grey600,
+                                                    color: isDark
+                                                        ? DesignSystem.grey400
+                                                        : DesignSystem.grey600,
                                                   ),
                                                   const SizedBox(width: 4),
                                                   Expanded(
@@ -326,8 +330,11 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                                                           .copyWith(
                                                             fontStyle: FontStyle
                                                                 .italic,
-                                                            color: DesignSystem
-                                                                .grey700,
+                                                            color: isDark
+                                                                ? DesignSystem
+                                                                      .grey300
+                                                                : DesignSystem
+                                                                      .grey700,
                                                           ),
                                                     ),
                                                   ),
