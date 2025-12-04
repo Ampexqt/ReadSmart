@@ -4,6 +4,7 @@ import '../widgets/mobile_header.dart';
 import '../widgets/bottom_nav.dart';
 import '../widgets/brutal_card.dart';
 import '../models/book.dart';
+import '../services/book_storage_service.dart';
 
 class HighlightsScreen extends StatefulWidget {
   const HighlightsScreen({super.key});
@@ -13,34 +14,38 @@ class HighlightsScreen extends StatefulWidget {
 }
 
 class _HighlightsScreenState extends State<HighlightsScreen> {
-  final List<Highlight> _highlights = [
-    Highlight(
-      id: '1',
-      bookId: '1',
-      bookTitle: 'The Great Gatsby',
-      text:
-          'So we beat on, boats against the current, borne back ceaselessly into the past.',
-      page: 180,
-      date: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    Highlight(
-      id: '2',
-      bookId: '2',
-      bookTitle: '1984',
-      text: 'War is peace. Freedom is slavery. Ignorance is strength.',
-      page: 7,
-      date: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-    Highlight(
-      id: '3',
-      bookId: '1',
-      bookTitle: 'The Great Gatsby',
-      text:
-          'I hope she\'ll be a fool—that\'s the best thing a girl can be in this world, a beautiful little fool.',
-      page: 17,
-      date: DateTime.now().subtract(const Duration(days: 7)),
-    ),
-  ];
+  final BookStorageService _storageService = BookStorageService();
+  List<Highlight> _highlights = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHighlights();
+  }
+
+  Future<void> _loadHighlights() async {
+    setState(() => _isLoading = true);
+    final highlights = await _storageService.loadHighlights();
+    setState(() {
+      _highlights = highlights;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _deleteHighlight(String highlightId) async {
+    await _storageService.deleteHighlight(highlightId);
+    _loadHighlights();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Highlight deleted'),
+          duration: Duration(seconds: 2),
+          backgroundColor: DesignSystem.primaryBlack,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,10 +95,12 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
                       ),
                     ),
                     const SizedBox(width: DesignSystem.spacingSM),
-                    Text(
-                      'TOTAL HIGHLIGHTS',
-                      style: DesignSystem.textSM.copyWith(
-                        fontWeight: FontWeight.w700,
+                    Expanded(
+                      child: Text(
+                        'TOTAL HIGHLIGHTS',
+                        style: DesignSystem.textSM.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
@@ -102,65 +109,186 @@ class _HighlightsScreenState extends State<HighlightsScreen> {
             ),
             // Highlights List
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DesignSystem.spacingMD,
-                ),
-                itemCount: _highlights.length,
-                separatorBuilder: (context, index) => const Divider(
-                  height: 1,
-                  thickness: 2,
-                  color: DesignSystem.primaryBlack,
-                ),
-                itemBuilder: (context, index) {
-                  final highlight = _highlights[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: DesignSystem.spacingMD,
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.format_quote,
-                          size: DesignSystem.iconSizeLG,
-                          color: DesignSystem.primaryBlack,
-                        ),
-                        const SizedBox(width: DesignSystem.spacingMD),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                highlight.text,
-                                style: DesignSystem.textBase.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.5,
-                                ),
-                              ),
-                              const SizedBox(height: DesignSystem.spacingSM),
-                              Text(
-                                highlight.bookTitle,
-                                style: DesignSystem.textSM.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: DesignSystem.spacingXS),
-                              Text(
-                                'Page ${highlight.page} • ${_formatDate(highlight.date)}',
-                                style: DesignSystem.textXS.copyWith(
-                                  fontWeight: FontWeight.w500,
-                                  color: DesignSystem.grey600,
-                                ),
-                              ),
-                            ],
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: DesignSystem.primaryBlack,
+                      ),
+                    )
+                  : _highlights.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.format_quote,
+                            size: 64,
+                            color: DesignSystem.grey400,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: DesignSystem.spacingMD),
+                          Text(
+                            'NO HIGHLIGHTS YET',
+                            style: DesignSystem.textLG.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: DesignSystem.grey600,
+                            ),
+                          ),
+                          const SizedBox(height: DesignSystem.spacingSM),
+                          Text(
+                            'Select text while reading to\ncreate your first highlight',
+                            textAlign: TextAlign.center,
+                            style: DesignSystem.textBase.copyWith(
+                              color: DesignSystem.grey600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: DesignSystem.spacingMD,
+                      ),
+                      itemCount: _highlights.length,
+                      separatorBuilder: (context, index) => const Divider(
+                        height: 1,
+                        thickness: 2,
+                        color: DesignSystem.primaryBlack,
+                      ),
+                      itemBuilder: (context, index) {
+                        final highlight = _highlights[index];
+                        return Dismissible(
+                          key: Key(highlight.id),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(
+                              right: DesignSystem.spacingLG,
+                            ),
+                            color: Colors.red,
+                            child: const Icon(
+                              Icons.delete,
+                              color: DesignSystem.primaryWhite,
+                              size: DesignSystem.iconSizeLG,
+                            ),
+                          ),
+                          onDismissed: (direction) {
+                            _deleteHighlight(highlight.id);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: DesignSystem.spacingMD,
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 4,
+                                  height: 60,
+                                  color:
+                                      highlight.highlightColor ??
+                                      const Color(0xFFFFEB3B),
+                                  margin: const EdgeInsets.only(
+                                    right: DesignSystem.spacingMD,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.format_quote,
+                                  size: DesignSystem.iconSizeLG,
+                                  color: DesignSystem.primaryBlack,
+                                ),
+                                const SizedBox(width: DesignSystem.spacingMD),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(
+                                          DesignSystem.spacingSM,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              highlight.highlightColor
+                                                  ?.withOpacity(0.2) ??
+                                              const Color(
+                                                0xFFFFEB3B,
+                                              ).withOpacity(0.2),
+                                        ),
+                                        child: Text(
+                                          highlight.text,
+                                          style: DesignSystem.textBase.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                            height: 1.5,
+                                          ),
+                                        ),
+                                      ),
+                                      if (highlight.note != null &&
+                                          highlight.note!.isNotEmpty) ...[
+                                        const SizedBox(
+                                          height: DesignSystem.spacingSM,
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.all(
+                                            DesignSystem.spacingSM,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            border: Border.all(
+                                              color: DesignSystem.grey300,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.note,
+                                                size: 16,
+                                                color: DesignSystem.grey600,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  highlight.note!,
+                                                  style: DesignSystem.textSM
+                                                      .copyWith(
+                                                        fontStyle:
+                                                            FontStyle.italic,
+                                                        color: DesignSystem
+                                                            .grey700,
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(
+                                        height: DesignSystem.spacingSM,
+                                      ),
+                                      Text(
+                                        highlight.bookTitle,
+                                        style: DesignSystem.textSM.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        height: DesignSystem.spacingXS,
+                                      ),
+                                      Text(
+                                        '${highlight.chapter ?? 'Chapter ${highlight.page + 1}'} • ${_formatDate(highlight.date)}',
+                                        style: DesignSystem.textXS.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                          color: DesignSystem.grey600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),

@@ -3,6 +3,8 @@ import '../theme/design_system.dart';
 import '../widgets/brutal_modal.dart';
 import '../widgets/brutal_button.dart';
 import '../models/book.dart';
+import '../services/book_storage_service.dart';
+import 'edit_book_modal.dart';
 
 class ManageBooksModal extends StatefulWidget {
   const ManageBooksModal({super.key});
@@ -12,36 +14,43 @@ class ManageBooksModal extends StatefulWidget {
 }
 
 class _ManageBooksModalState extends State<ManageBooksModal> {
-  final List<Book> _books = [
-    Book(
-      id: '1',
-      title: 'The Great Gatsby',
-      author: 'F. Scott Fitzgerald',
-      progress: 0.65,
-      coverColor: DesignSystem.grey200,
-    ),
-    Book(
-      id: '2',
-      title: '1984',
-      author: 'George Orwell',
-      progress: 0.30,
-      coverColor: DesignSystem.grey300,
-    ),
-    Book(
-      id: '3',
-      title: 'To Kill a Mockingbird',
-      author: 'Harper Lee',
-      progress: 0.0,
-      coverColor: DesignSystem.grey200,
-    ),
-    Book(
-      id: '4',
-      title: 'Pride and Prejudice',
-      author: 'Jane Austen',
-      progress: 1.0,
-      coverColor: DesignSystem.grey300,
-    ),
-  ];
+  final BookStorageService _storageService = BookStorageService();
+  List<Book> _books = [];
+  bool _isLoading = true;
+  bool _hasChanges = false; // Track if any books were deleted
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBooks();
+  }
+
+  Future<void> _loadBooks() async {
+    setState(() => _isLoading = true);
+    final books = await _storageService.loadBooks();
+    setState(() {
+      _books = books;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _deleteBook(Book book) async {
+    await _storageService.deleteBook(book.id);
+    setState(() {
+      _books.removeWhere((b) => b.id == book.id);
+      _hasChanges = true;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Deleted "${book.title}"'),
+          duration: const Duration(seconds: 2),
+          backgroundColor: DesignSystem.primaryBlack,
+        ),
+      );
+    }
+  }
 
   void _showDeleteConfirmation(Book book) {
     showDialog(
@@ -75,10 +84,8 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
           BrutalButton(
             text: 'DELETE',
             onPressed: () {
-              setState(() {
-                _books.removeWhere((b) => b.id == book.id);
-              });
               Navigator.of(context).pop();
+              _deleteBook(book);
             },
           ),
         ],
@@ -90,97 +97,169 @@ class _ManageBooksModalState extends State<ManageBooksModal> {
   Widget build(BuildContext context) {
     return BrutalModal(
       title: 'MANAGE BOOKS',
-      onClose: () => Navigator.of(context).pop(),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: _books.map((book) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: DesignSystem.spacingMD),
-            child: Container(
-              padding: const EdgeInsets.all(DesignSystem.spacingMD),
-              decoration: BoxDecoration(
-                color: DesignSystem.primaryWhite,
-                border: DesignSystem.border,
-                boxShadow: DesignSystem.shadowSmall,
+      onClose: () => Navigator.of(context).pop(_hasChanges),
+      child: _isLoading
+          ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(DesignSystem.spacingXL),
+                child: CircularProgressIndicator(
+                  color: DesignSystem.primaryBlack,
+                ),
               ),
-              child: Row(
-                children: [
-                  // Mini Cover
-                  Container(
-                    width: 64,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: book.coverColor ?? DesignSystem.grey200,
-                      border: DesignSystem.border,
+            )
+          : _books.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(DesignSystem.spacingXL),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.book_outlined,
+                      size: 48,
+                      color: DesignSystem.grey400,
                     ),
-                    child: book.coverImagePath != null
-                        ? Image.asset(book.coverImagePath!, fit: BoxFit.cover)
-                        : const Icon(
-                            Icons.menu_book,
-                            size: DesignSystem.iconSizeLG,
-                            color: DesignSystem.primaryBlack,
-                          ),
+                    const SizedBox(height: DesignSystem.spacingMD),
+                    Text(
+                      'NO BOOKS',
+                      style: DesignSystem.textLG.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: DesignSystem.grey600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: _books.map((book) {
+                return Padding(
+                  padding: const EdgeInsets.only(
+                    bottom: DesignSystem.spacingMD,
                   ),
-                  const SizedBox(width: DesignSystem.spacingMD),
-                  // Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Container(
+                    padding: const EdgeInsets.all(DesignSystem.spacingSM),
+                    decoration: BoxDecoration(
+                      color: DesignSystem.primaryWhite,
+                      border: DesignSystem.border,
+                      boxShadow: DesignSystem.shadowSmall,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          book.title,
-                          style: DesignSystem.textSM.copyWith(
-                            fontWeight: FontWeight.w700,
+                        // Mini Cover - Smaller
+                        Container(
+                          width: 50,
+                          height: 70,
+                          decoration: BoxDecoration(
+                            color: book.coverColor ?? DesignSystem.grey200,
+                            border: DesignSystem.border,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          child: book.coverImagePath != null
+                              ? Image.asset(
+                                  book.coverImagePath!,
+                                  fit: BoxFit.cover,
+                                )
+                              : const Icon(
+                                  Icons.menu_book,
+                                  size: DesignSystem.iconSizeMD,
+                                  color: DesignSystem.primaryBlack,
+                                ),
                         ),
-                        const SizedBox(height: DesignSystem.spacingXS),
-                        Text(
-                          book.author,
-                          style: DesignSystem.textXS.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: DesignSystem.grey600,
+                        const SizedBox(width: DesignSystem.spacingSM),
+                        // Content - Flexible
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                book.title,
+                                style: DesignSystem.textSM.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                book.author,
+                                style: DesignSystem.textXS.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  color: DesignSystem.grey600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
+                        ),
+                        const SizedBox(width: DesignSystem.spacingSM),
+                        // Actions - Fixed size buttons
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 60,
+                              height: 32,
+                              child: GestureDetector(
+                                onTap: () async {
+                                  final hasChanges = await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) =>
+                                        EditBookModal(book: book),
+                                  );
+
+                                  if (hasChanges == true) {
+                                    _loadBooks();
+                                    setState(() => _hasChanges = true);
+                                  }
+                                },
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: DesignSystem.primaryWhite,
+                                    border: DesignSystem.border,
+                                  ),
+                                  child: Text(
+                                    'EDIT',
+                                    style: DesignSystem.textXS.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            SizedBox(
+                              width: 60,
+                              height: 32,
+                              child: GestureDetector(
+                                onTap: () => _showDeleteConfirmation(book),
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: DesignSystem.primaryWhite,
+                                    border: DesignSystem.border,
+                                  ),
+                                  child: Text(
+                                    'DELETE',
+                                    style: DesignSystem.textXS.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  // Actions
-                  BrutalButton(
-                    text: 'EDIT',
-                    size: BrutalButtonSize.sm,
-                    variant: BrutalButtonVariant.outline,
-                    onPressed: () {
-                      // Handle edit
-                    },
-                  ),
-                  const SizedBox(width: DesignSystem.spacingSM),
-                  GestureDetector(
-                    onTap: () => _showDeleteConfirmation(book),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: DesignSystem.spacingSM,
-                        vertical: DesignSystem.spacingXS,
-                      ),
-                      decoration: BoxDecoration(
-                        color: DesignSystem.primaryWhite,
-                        border: DesignSystem.borderSmall,
-                      ),
-                      child: Text(
-                        'DELETE',
-                        style: DesignSystem.textXS.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                );
+              }).toList(),
             ),
-          );
-        }).toList(),
-      ),
     );
   }
 }

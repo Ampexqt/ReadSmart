@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
+import '../providers/theme_provider.dart';
 
 class MobileHeader extends StatelessWidget {
   final String title;
@@ -15,10 +17,12 @@ class MobileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: DesignSystem.primaryWhite,
-        border: Border(bottom: DesignSystem.borderSide),
+      decoration: BoxDecoration(
+        color: DesignSystem.cardColor(isDark),
+        border: Border(bottom: DesignSystem.themeBorderSide(isDark)),
       ),
       padding: const EdgeInsets.all(DesignSystem.spacingMD),
       child: SafeArea(
@@ -28,10 +32,10 @@ class MobileHeader extends StatelessWidget {
             if (onBack != null)
               GestureDetector(
                 onTap: onBack,
-                child: const Icon(
+                child: Icon(
                   Icons.arrow_back,
                   size: DesignSystem.iconSizeLG,
-                  color: DesignSystem.primaryBlack,
+                  color: DesignSystem.textColor(isDark),
                 ),
               ),
             if (onBack != null) const SizedBox(width: DesignSystem.spacingMD),
@@ -41,6 +45,7 @@ class MobileHeader extends StatelessWidget {
                 style: DesignSystem.textXL.copyWith(
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.02,
+                  color: DesignSystem.textColor(isDark),
                 ),
               ),
             ),

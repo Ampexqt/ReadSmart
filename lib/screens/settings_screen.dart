@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/design_system.dart';
 import '../widgets/mobile_header.dart';
 import '../widgets/bottom_nav.dart';
 import 'manage_books_modal.dart';
+import '../services/book_storage_service.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,112 +15,138 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _darkMode = false;
+  final BookStorageService _storageService = BookStorageService();
   bool _notifications = true;
   String _fontSize = 'MEDIUM';
+  int _bookCount = 0;
 
-  void _showManageBooks() {
-    showDialog(
+  @override
+  void initState() {
+    super.initState();
+    _loadBookCount();
+  }
+
+  Future<void> _loadBookCount() async {
+    final books = await _storageService.loadBooks();
+    setState(() {
+      _bookCount = books.length;
+    });
+  }
+
+  void _showManageBooks() async {
+    final hasChanges = await showDialog<bool>(
       context: context,
       builder: (context) => const ManageBooksModal(),
     );
+
+    // Reload book count if changes were made
+    if (hasChanges == true) {
+      _loadBookCount();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: DesignSystem.primaryWhite,
-      body: Container(
-        constraints: const BoxConstraints(maxWidth: DesignSystem.maxWidth),
-        margin: EdgeInsets.symmetric(
-          horizontal: MediaQuery.of(context).size.width > DesignSystem.maxWidth
-              ? (MediaQuery.of(context).size.width - DesignSystem.maxWidth) / 2
-              : 0,
-        ),
-        decoration: const BoxDecoration(
-          border: Border(
-            left: DesignSystem.borderSide,
-            right: DesignSystem.borderSide,
-          ),
-        ),
-        child: Column(
-          children: [
-            // Header
-            const MobileHeader(title: 'SETTINGS'),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(DesignSystem.spacingMD),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSection('LIBRARY', [
-                      _buildSettingTile(
-                        icon: Icons.library_books,
-                        title: 'MANAGE BOOKS',
-                        subtitle: '4 books',
-                        onTap: _showManageBooks,
-                      ),
-                    ]),
-                    const SizedBox(height: DesignSystem.spacingLG),
-                    _buildSection('APPEARANCE', [
-                      _buildSettingTile(
-                        icon: Icons.dark_mode,
-                        title: 'DARK MODE',
-                        trailing: _buildToggle(_darkMode, (value) {
-                          setState(() => _darkMode = value);
-                        }),
-                      ),
-                      const SizedBox(height: DesignSystem.spacingMD),
-                      _buildFontSizeSelector(),
-                    ]),
-                    const SizedBox(height: DesignSystem.spacingLG),
-                    _buildSection('READING', [
-                      _buildSettingTile(
-                        icon: Icons.font_download,
-                        title: 'FONT SIZE',
-                        subtitle: _fontSize,
-                      ),
-                    ]),
-                    const SizedBox(height: DesignSystem.spacingLG),
-                    _buildSection('NOTIFICATIONS', [
-                      _buildSettingTile(
-                        icon: Icons.notifications,
-                        title: 'ENABLE NOTIFICATIONS',
-                        trailing: _buildToggle(_notifications, (value) {
-                          setState(() => _notifications = value);
-                        }),
-                      ),
-                    ]),
-                    const SizedBox(height: DesignSystem.spacingLG),
-                    _buildSection('ACCOUNT', [
-                      _buildSettingTile(
-                        icon: Icons.person,
-                        title: 'PROFILE',
-                        onTap: () {
-                          Navigator.of(context).pushNamed('/profile');
-                        },
-                      ),
-                    ]),
-                  ],
-                ),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isDark = themeProvider.isDarkMode;
+
+        return Scaffold(
+          backgroundColor: DesignSystem.backgroundColor(isDark),
+          body: Container(
+            constraints: const BoxConstraints(maxWidth: DesignSystem.maxWidth),
+            margin: EdgeInsets.symmetric(
+              horizontal:
+                  MediaQuery.of(context).size.width > DesignSystem.maxWidth
+                  ? (MediaQuery.of(context).size.width -
+                            DesignSystem.maxWidth) /
+                        2
+                  : 0,
+            ),
+            decoration: BoxDecoration(
+              border: Border(
+                left: DesignSystem.themeBorderSide(isDark),
+                right: DesignSystem.themeBorderSide(isDark),
               ),
             ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: BottomNav(
-        currentItem: BottomNavItem.settings,
-        onItemSelected: (item) {
-          if (item == BottomNavItem.home) {
-            Navigator.of(context).pushReplacementNamed('/home');
-          } else if (item == BottomNavItem.bookmarks) {
-            Navigator.of(context).pushReplacementNamed('/bookmarks');
-          } else if (item == BottomNavItem.highlights) {
-            Navigator.of(context).pushReplacementNamed('/highlights');
-          }
-        },
-      ),
+            child: Column(
+              children: [
+                // Header
+                const MobileHeader(title: 'SETTINGS'),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(DesignSystem.spacingMD),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSection('LIBRARY', [
+                          _buildSettingTile(
+                            icon: Icons.library_books,
+                            title: 'MANAGE BOOKS',
+                            subtitle:
+                                '$_bookCount ${_bookCount == 1 ? 'book' : 'books'}',
+                            onTap: _showManageBooks,
+                          ),
+                        ]),
+                        const SizedBox(height: DesignSystem.spacingLG),
+                        _buildSection('APPEARANCE', [
+                          Consumer<ThemeProvider>(
+                            builder: (context, themeProvider, _) {
+                              return _buildSettingTile(
+                                icon: Icons.dark_mode,
+                                title: 'DARK MODE',
+                                trailing: _buildToggle(
+                                  themeProvider.isDarkMode,
+                                  (value) {
+                                    themeProvider.toggleTheme();
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: DesignSystem.spacingMD),
+                          _buildFontSizeSelector(),
+                        ]),
+                        const SizedBox(height: DesignSystem.spacingLG),
+                        _buildSection('READING', [
+                          _buildSettingTile(
+                            icon: Icons.font_download,
+                            title: 'FONT SIZE',
+                            subtitle: _fontSize,
+                          ),
+                        ]),
+                        const SizedBox(height: DesignSystem.spacingLG),
+                        _buildSection('NOTIFICATIONS', [
+                          _buildSettingTile(
+                            icon: Icons.notifications,
+                            title: 'ENABLE NOTIFICATIONS',
+                            trailing: _buildToggle(_notifications, (value) {
+                              setState(() => _notifications = value);
+                            }),
+                          ),
+                        ]),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          bottomNavigationBar: BottomNav(
+            currentItem: BottomNavItem.settings,
+            onItemSelected: (item) {
+              if (item == BottomNavItem.home) {
+                Navigator.of(context).pushReplacementNamed('/home');
+              } else if (item == BottomNavItem.bookmarks) {
+                Navigator.of(context).pushReplacementNamed('/bookmarks');
+              } else if (item == BottomNavItem.highlights) {
+                Navigator.of(context).pushReplacementNamed('/highlights');
+              }
+            },
+          ),
+        );
+      },
     );
   }
 

@@ -3,6 +3,7 @@ import '../theme/design_system.dart';
 import '../widgets/mobile_header.dart';
 import '../widgets/bottom_nav.dart';
 import '../models/book.dart';
+import '../services/book_storage_service.dart';
 
 class BookmarksScreen extends StatefulWidget {
   const BookmarksScreen({super.key});
@@ -12,35 +13,61 @@ class BookmarksScreen extends StatefulWidget {
 }
 
 class _BookmarksScreenState extends State<BookmarksScreen> {
-  final List<Bookmark> _bookmarks = [
-    Bookmark(
-      id: '1',
-      bookId: '1',
-      bookTitle: 'The Great Gatsby',
-      chapter: 'Chapter 7',
-      page: 120,
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      coverColor: DesignSystem.grey200,
-    ),
-    Bookmark(
-      id: '2',
-      bookId: '2',
-      bookTitle: '1984',
-      chapter: 'Part 1, Chapter 3',
-      page: 45,
-      date: DateTime.now().subtract(const Duration(days: 3)),
-      coverColor: DesignSystem.grey300,
-    ),
-    Bookmark(
-      id: '3',
-      bookId: '1',
-      bookTitle: 'The Great Gatsby',
-      chapter: 'Chapter 3',
-      page: 55,
-      date: DateTime.now().subtract(const Duration(days: 5)),
-      coverColor: DesignSystem.grey200,
-    ),
-  ];
+  final BookStorageService _storageService = BookStorageService();
+  List<Bookmark> _bookmarks = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookmarks();
+  }
+
+  Future<void> _loadBookmarks() async {
+    setState(() => _isLoading = true);
+    final bookmarks = await _storageService.loadBookmarks();
+    // Sort by date, newest first
+    bookmarks.sort((a, b) => b.date.compareTo(a.date));
+    setState(() {
+      _bookmarks = bookmarks;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _deleteBookmark(String bookmarkId) async {
+    await _storageService.deleteBookmark(bookmarkId);
+    _loadBookmarks();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bookmark deleted'),
+          duration: Duration(seconds: 2),
+          backgroundColor: DesignSystem.primaryBlack,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openBookmark(Bookmark bookmark) async {
+    // Load the book and navigate to the bookmarked chapter
+    final books = await _storageService.loadBooks();
+    final book = books.firstWhere(
+      (b) => b.id == bookmark.bookId,
+      orElse: () => Book(
+        id: bookmark.bookId,
+        title: bookmark.bookTitle,
+        author: 'Unknown',
+      ),
+    );
+
+    if (mounted) {
+      // Navigate to reader with the book and chapter info
+      Navigator.of(context).pushNamed(
+        '/reader',
+        arguments: {'book': book, 'chapterIndex': bookmark.page},
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,16 +92,51 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
             const MobileHeader(title: 'BOOKMARKS'),
             // Bookmarks List
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(DesignSystem.spacingMD),
-                itemCount: _bookmarks.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: DesignSystem.spacingMD),
-                itemBuilder: (context, index) {
-                  final bookmark = _bookmarks[index];
-                  return _buildBookmarkCard(bookmark);
-                },
-              ),
+              child: _isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: DesignSystem.primaryBlack,
+                      ),
+                    )
+                  : _bookmarks.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.bookmark_border,
+                            size: 64,
+                            color: DesignSystem.grey400,
+                          ),
+                          const SizedBox(height: DesignSystem.spacingMD),
+                          Text(
+                            'NO BOOKMARKS YET',
+                            style: DesignSystem.textLG.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: DesignSystem.grey600,
+                            ),
+                          ),
+                          const SizedBox(height: DesignSystem.spacingSM),
+                          Text(
+                            'Bookmark chapters while reading\nto save your progress',
+                            textAlign: TextAlign.center,
+                            style: DesignSystem.textBase.copyWith(
+                              color: DesignSystem.grey600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(DesignSystem.spacingMD),
+                      itemCount: _bookmarks.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: DesignSystem.spacingMD),
+                      itemBuilder: (context, index) {
+                        final bookmark = _bookmarks[index];
+                        return _buildBookmarkCard(bookmark);
+                      },
+                    ),
             ),
           ],
         ),
@@ -95,76 +157,105 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
   }
 
   Widget _buildBookmarkCard(Bookmark bookmark) {
-    return Container(
-      padding: const EdgeInsets.all(DesignSystem.spacingMD),
-      decoration: BoxDecoration(
-        color: DesignSystem.primaryWhite,
-        border: DesignSystem.border,
-        boxShadow: DesignSystem.shadowSmall,
+    return Dismissible(
+      key: Key(bookmark.id),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: DesignSystem.spacingLG),
+        decoration: BoxDecoration(
+          color: Colors.red,
+          border: DesignSystem.border,
+        ),
+        child: const Icon(
+          Icons.delete,
+          color: DesignSystem.primaryWhite,
+          size: DesignSystem.iconSizeLG,
+        ),
       ),
-      child: Row(
-        children: [
-          // Mini Cover
-          Container(
-            width: 48,
-            height: 64,
-            decoration: BoxDecoration(
-              color: bookmark.coverColor ?? DesignSystem.grey200,
-              border: DesignSystem.border,
-            ),
-            child: bookmark.coverImagePath != null
-                ? Image.asset(bookmark.coverImagePath!, fit: BoxFit.cover)
-                : const Icon(
-                    Icons.menu_book,
-                    size: DesignSystem.iconSizeLG,
-                    color: DesignSystem.primaryBlack,
-                  ),
+      onDismissed: (direction) {
+        _deleteBookmark(bookmark.id);
+      },
+      child: GestureDetector(
+        onTap: () => _openBookmark(bookmark),
+        child: Container(
+          padding: const EdgeInsets.all(DesignSystem.spacingMD),
+          decoration: BoxDecoration(
+            color: DesignSystem.primaryWhite,
+            border: DesignSystem.border,
+            boxShadow: DesignSystem.shadowSmall,
           ),
-          const SizedBox(width: DesignSystem.spacingMD),
-          // Content
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  bookmark.bookTitle,
-                  style: DesignSystem.textBase.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
+          child: Row(
+            children: [
+              // Mini Cover
+              Container(
+                width: 48,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: bookmark.coverColor ?? DesignSystem.grey200,
+                  border: DesignSystem.border,
                 ),
-                if (bookmark.chapter != null) ...[
-                  const SizedBox(height: DesignSystem.spacingXS),
-                  Text(
-                    bookmark.chapter!,
-                    style: DesignSystem.textSM.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: DesignSystem.grey600,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: DesignSystem.spacingXS),
-                Row(
+                child: bookmark.coverImagePath != null
+                    ? Image.asset(bookmark.coverImagePath!, fit: BoxFit.cover)
+                    : const Icon(
+                        Icons.menu_book,
+                        size: DesignSystem.iconSizeLG,
+                        color: DesignSystem.primaryBlack,
+                      ),
+              ),
+              const SizedBox(width: DesignSystem.spacingMD),
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'PAGE ${bookmark.page}',
-                      style: DesignSystem.textXS.copyWith(
-                        fontWeight: FontWeight.w700,
+                      bookmark.bookTitle,
+                      style: DesignSystem.textBase.copyWith(
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(width: DesignSystem.spacingSM),
-                    Text(
-                      '• ${_formatDate(bookmark.date)}',
-                      style: DesignSystem.textXS.copyWith(
-                        fontWeight: FontWeight.w500,
-                        color: DesignSystem.grey600,
+                    if (bookmark.chapter != null) ...[
+                      const SizedBox(height: DesignSystem.spacingXS),
+                      Text(
+                        bookmark.chapter!,
+                        style: DesignSystem.textSM.copyWith(
+                          fontWeight: FontWeight.w500,
+                          color: DesignSystem.grey600,
+                        ),
                       ),
+                    ],
+                    const SizedBox(height: DesignSystem.spacingXS),
+                    Row(
+                      children: [
+                        Text(
+                          'PAGE ${bookmark.page}',
+                          style: DesignSystem.textXS.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: DesignSystem.spacingSM),
+                        Text(
+                          '• ${_formatDate(bookmark.date)}',
+                          style: DesignSystem.textXS.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: DesignSystem.grey600,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              // Arrow icon to indicate it's tappable
+              const Icon(
+                Icons.chevron_right,
+                color: DesignSystem.grey600,
+                size: DesignSystem.iconSizeLG,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

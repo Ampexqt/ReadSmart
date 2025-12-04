@@ -1,0 +1,195 @@
+import 'package:flutter/material.dart';
+import '../theme/design_system.dart';
+import '../widgets/brutal_button.dart';
+
+class HighlightDialog extends StatefulWidget {
+  final String selectedText;
+  final VoidCallback onSave;
+  final Function(String? note, Color? color) onSaveWithData;
+
+  const HighlightDialog({
+    super.key,
+    required this.selectedText,
+    required this.onSave,
+    required this.onSaveWithData,
+  });
+
+  @override
+  State<HighlightDialog> createState() => _HighlightDialogState();
+}
+
+class _HighlightDialogState extends State<HighlightDialog> {
+  final TextEditingController _noteController = TextEditingController();
+  Color? _selectedColor = const Color(0xFFFFEB3B); // Yellow default
+
+  final List<Color> _highlightColors = [
+    const Color(0xFFFFEB3B), // Yellow
+    const Color(0xFF4CAF50), // Green
+    const Color(0xFF2196F3), // Blue
+    const Color(0xFFFF9800), // Orange
+    const Color(0xFFE91E63), // Pink
+  ];
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: DesignSystem.primaryWhite,
+      shape: const RoundedRectangleBorder(),
+      child: Container(
+        decoration: BoxDecoration(border: DesignSystem.border),
+        padding: const EdgeInsets.all(DesignSystem.spacingLG),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Title
+            Row(
+              children: [
+                const Icon(
+                  Icons.format_quote,
+                  size: DesignSystem.iconSizeLG,
+                  color: DesignSystem.primaryBlack,
+                ),
+                const SizedBox(width: DesignSystem.spacingSM),
+                Text(
+                  'CREATE HIGHLIGHT',
+                  style: DesignSystem.textLG.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: DesignSystem.spacingLG),
+
+            // Selected Text Preview
+            Container(
+              padding: const EdgeInsets.all(DesignSystem.spacingMD),
+              decoration: BoxDecoration(
+                color: _selectedColor?.withOpacity(0.3),
+                border: DesignSystem.border,
+              ),
+              child: Text(
+                widget.selectedText,
+                style: DesignSystem.textBase.copyWith(
+                  fontWeight: FontWeight.w500,
+                  height: 1.5,
+                ),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: DesignSystem.spacingLG),
+
+            // Color Picker
+            Text(
+              'HIGHLIGHT COLOR',
+              style: DesignSystem.textSM.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: DesignSystem.spacingSM),
+            Row(
+              children: _highlightColors.map((color) {
+                final isSelected = _selectedColor == color;
+                return Padding(
+                  padding: const EdgeInsets.only(right: DesignSystem.spacingSM),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedColor = color);
+                    },
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: color,
+                        border: Border.all(
+                          color: DesignSystem.primaryBlack,
+                          width: isSelected ? 3 : 2,
+                        ),
+                      ),
+                      child: isSelected
+                          ? const Icon(
+                              Icons.check,
+                              color: DesignSystem.primaryBlack,
+                              size: DesignSystem.iconSizeMD,
+                            )
+                          : null,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: DesignSystem.spacingLG),
+
+            // Note Input
+            Text(
+              'ADD NOTE (OPTIONAL)',
+              style: DesignSystem.textSM.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: DesignSystem.spacingSM),
+            TextField(
+              controller: _noteController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Add your thoughts...',
+                border: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: DesignSystem.primaryBlack,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.zero,
+                ),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: DesignSystem.primaryBlack,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.zero,
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: DesignSystem.primaryBlack,
+                    width: 3,
+                  ),
+                  borderRadius: BorderRadius.zero,
+                ),
+                contentPadding: const EdgeInsets.all(DesignSystem.spacingMD),
+              ),
+              style: DesignSystem.textBase,
+            ),
+            const SizedBox(height: DesignSystem.spacingLG),
+
+            // Action Buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                BrutalButton(
+                  text: 'CANCEL',
+                  onPressed: () => Navigator.of(context).pop(),
+                  variant: BrutalButtonVariant.secondary,
+                ),
+                const SizedBox(width: DesignSystem.spacingMD),
+                BrutalButton(
+                  text: 'SAVE',
+                  onPressed: () {
+                    final note = _noteController.text.trim();
+                    widget.onSaveWithData(
+                      note.isEmpty ? null : note,
+                      _selectedColor,
+                    );
+                    Navigator.of(context).pop();
+                  },
+                  variant: BrutalButtonVariant.primary,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

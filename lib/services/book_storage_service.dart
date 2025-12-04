@@ -119,4 +119,47 @@ class BookStorageService {
     final bookmarks = await loadBookmarks();
     return bookmarks.any((b) => b.bookId == bookId && b.page == chapterIndex);
   }
+
+  // Highlight Management
+  static const String _highlightsKey = 'highlights';
+
+  Future<List<Highlight>> loadHighlights() async {
+    final prefs = await SharedPreferences.getInstance();
+    final highlightsString = prefs.getString(_highlightsKey);
+
+    if (highlightsString == null || highlightsString.isEmpty) {
+      return [];
+    }
+
+    try {
+      final List<dynamic> highlightsJson = jsonDecode(highlightsString);
+      return highlightsJson.map((json) => Highlight.fromJson(json)).toList();
+    } catch (e) {
+      print('Error loading highlights: $e');
+      return [];
+    }
+  }
+
+  Future<void> saveHighlights(List<Highlight> highlights) async {
+    final prefs = await SharedPreferences.getInstance();
+    final highlightsJson = highlights.map((h) => h.toJson()).toList();
+    await prefs.setString(_highlightsKey, jsonEncode(highlightsJson));
+  }
+
+  Future<void> addHighlight(Highlight highlight) async {
+    final highlights = await loadHighlights();
+    highlights.add(highlight);
+    await saveHighlights(highlights);
+  }
+
+  Future<void> deleteHighlight(String highlightId) async {
+    final highlights = await loadHighlights();
+    highlights.removeWhere((h) => h.id == highlightId);
+    await saveHighlights(highlights);
+  }
+
+  Future<List<Highlight>> getHighlightsByBook(String bookId) async {
+    final highlights = await loadHighlights();
+    return highlights.where((h) => h.bookId == bookId).toList();
+  }
 }

@@ -82,17 +82,49 @@ class Highlight {
   final String bookId;
   final String bookTitle;
   final String text;
+  final String? chapter;
   final int page;
   final DateTime date;
+  final String? note;
+  final Color? highlightColor;
 
   Highlight({
     required this.id,
     required this.bookId,
     required this.bookTitle,
     required this.text,
+    this.chapter,
     required this.page,
     required this.date,
+    this.note,
+    this.highlightColor,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'bookId': bookId,
+    'bookTitle': bookTitle,
+    'text': text,
+    'chapter': chapter,
+    'page': page,
+    'date': date.toIso8601String(),
+    'note': note,
+    'highlightColor': highlightColor?.value,
+  };
+
+  factory Highlight.fromJson(Map<String, dynamic> json) => Highlight(
+    id: json['id'] as String,
+    bookId: json['bookId'] as String,
+    bookTitle: json['bookTitle'] as String,
+    text: json['text'] as String,
+    chapter: json['chapter'] as String?,
+    page: json['page'] as int,
+    date: DateTime.parse(json['date'] as String),
+    note: json['note'] as String?,
+    highlightColor: json['highlightColor'] != null
+        ? Color(json['highlightColor'] as int)
+        : null,
+  );
 }
 
 class Bookmark {

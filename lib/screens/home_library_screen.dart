@@ -28,6 +28,12 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
     _loadBooks();
   }
 
+  @override
+  void didUpdateWidget(HomeLibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _loadBooks(); // Reload when widget updates
+  }
+
   Future<void> _loadBooks() async {
     setState(() => _isLoading = true);
     final books = await _storageService.loadBooks();
@@ -47,6 +53,11 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
     if (result == true) {
       _loadBooks();
     }
+  }
+
+  // Add this method to refresh manually
+  Future<void> _refresh() async {
+    await _loadBooks();
   }
 
   @override
@@ -141,64 +152,74 @@ class _HomeLibraryScreenState extends State<HomeLibraryScreen> {
             ),
             // Book Grid
             Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: DesignSystem.primaryBlack,
-                        strokeWidth: 3,
-                      ),
-                    )
-                  : _books.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.book_outlined,
-                            size: 64,
-                            color: DesignSystem.grey400,
-                          ),
-                          const SizedBox(height: DesignSystem.spacingMD),
-                          Text(
-                            'NO BOOKS YET',
-                            style: DesignSystem.textLG.copyWith(
-                              fontWeight: FontWeight.w700,
-                              color: DesignSystem.grey600,
+              child: RefreshIndicator(
+                onRefresh: _refresh,
+                color: DesignSystem.primaryBlack,
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: DesignSystem.primaryBlack,
+                          strokeWidth: 3,
+                        ),
+                      )
+                    : _books.isEmpty
+                    ? SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.book_outlined,
+                                  size: 64,
+                                  color: DesignSystem.grey400,
+                                ),
+                                const SizedBox(height: DesignSystem.spacingMD),
+                                Text(
+                                  'NO BOOKS YET',
+                                  style: DesignSystem.textLG.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: DesignSystem.grey600,
+                                  ),
+                                ),
+                                const SizedBox(height: DesignSystem.spacingSM),
+                                Text(
+                                  'Tap the + button to add your first book',
+                                  style: DesignSystem.textSM.copyWith(
+                                    color: DesignSystem.grey500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: DesignSystem.spacingSM),
-                          Text(
-                            'Tap the + button to add your first book',
-                            style: DesignSystem.textSM.copyWith(
-                              color: DesignSystem.grey500,
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: const EdgeInsets.all(DesignSystem.spacingMD),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: DesignSystem.spacingMD,
+                              mainAxisSpacing: DesignSystem.spacingMD,
+                              childAspectRatio: 0.55,
                             ),
-                          ),
-                        ],
+                        itemCount: _books.length,
+                        itemBuilder: (context, index) => BookCard(
+                          title: _books[index].title,
+                          author: _books[index].author,
+                          progress: _books[index].progress,
+                          coverColor: _books[index].coverColor,
+                          coverImagePath: _books[index].coverImagePath,
+                          onTap: () {
+                            Navigator.of(
+                              context,
+                            ).pushNamed('/reader', arguments: _books[index]);
+                          },
+                        ),
                       ),
-                    )
-                  : GridView.builder(
-                      padding: const EdgeInsets.all(DesignSystem.spacingMD),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: DesignSystem.spacingMD,
-                            mainAxisSpacing: DesignSystem.spacingMD,
-                            childAspectRatio: 0.55,
-                          ),
-                      itemCount: _books.length,
-                      itemBuilder: (context, index) => BookCard(
-                        title: _books[index].title,
-                        author: _books[index].author,
-                        progress: _books[index].progress,
-                        coverColor: _books[index].coverColor,
-                        coverImagePath: _books[index].coverImagePath,
-                        onTap: () {
-                          Navigator.of(
-                            context,
-                          ).pushNamed('/reader', arguments: _books[index]);
-                        },
-                      ),
-                    ),
+              ),
             ),
           ],
         ),

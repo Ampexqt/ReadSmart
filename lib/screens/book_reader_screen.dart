@@ -9,6 +9,7 @@ import '../theme/design_system.dart';
 import '../widgets/mobile_header.dart';
 import '../models/book.dart';
 import '../services/book_storage_service.dart';
+import '../widgets/highlight_dialog.dart';
 
 class BookReaderScreen extends StatefulWidget {
   const BookReaderScreen({super.key});
@@ -38,10 +39,22 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_book == null) {
-      final book = ModalRoute.of(context)!.settings.arguments as Book?;
-      if (book != null) {
-        _book = book;
-        _loadFile(book);
+      final args = ModalRoute.of(context)!.settings.arguments;
+
+      // Check if arguments is a Map (from bookmarks) or just a Book
+      if (args is Map<String, dynamic>) {
+        _book = args['book'] as Book?;
+        final chapterIndex = args['chapterIndex'] as int?;
+        if (_book != null) {
+          if (chapterIndex != null) {
+            _currentEpubChapterIndex = chapterIndex;
+          }
+          _loadFile(_book!);
+          _checkBookmarkStatus();
+        }
+      } else if (args is Book) {
+        _book = args;
+        _loadFile(_book!);
         _checkBookmarkStatus();
       }
     }
@@ -175,6 +188,48 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
     _checkBookmarkStatus();
   }
 
+  void _handleTextSelection(String selectedText) {
+    // Debounce to prevent showing dialog on every character selection
+    if (selectedText.length < 10) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => HighlightDialog(
+        selectedText: selectedText,
+        onSave: () {},
+        onSaveWithData: (note, color) async {
+          if (_book == null || _allChapters.isEmpty) return;
+
+          final highlight = Highlight(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            bookId: _book!.id,
+            bookTitle: _book!.title,
+            text: selectedText,
+            chapter:
+                _allChapters[_currentEpubChapterIndex].Title ??
+                'Chapter ${_currentEpubChapterIndex + 1}',
+            page: _currentEpubChapterIndex,
+            date: DateTime.now(),
+            note: note,
+            highlightColor: color,
+          );
+
+          await _storageService.addHighlight(highlight);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Highlight saved!'),
+                duration: Duration(seconds: 2),
+                backgroundColor: DesignSystem.primaryBlack,
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -293,8 +348,11 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Highlight feature coming soon!'),
+                        content: Text(
+                          'Select text in the reader to create highlights!',
+                        ),
                         duration: Duration(seconds: 2),
+                        backgroundColor: DesignSystem.primaryBlack,
                       ),
                     );
                   },
@@ -409,15 +467,26 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
         return SingleChildScrollView(
           controller: _epubScrollController,
           padding: const EdgeInsets.all(DesignSystem.spacingLG),
-          child: Html(
-            data: currentChapter.HtmlContent ?? "<p>No content</p>",
-            style: {
-              "body": Style(
-                fontSize: FontSize(16.0),
-                lineHeight: LineHeight(1.6),
-                fontFamily: 'Inter',
-              ),
+          child: SelectionArea(
+            onSelectionChanged: (selectedTextValue) {
+              // Capture selected text
+              if (selectedTextValue != null) {
+                final selectedText = selectedTextValue.plainText;
+                if (selectedText.isNotEmpty) {
+                  _handleTextSelection(selectedText);
+                }
+              }
             },
+            child: Html(
+              data: currentChapter.HtmlContent ?? "<p>No content</p>",
+              style: {
+                "body": Style(
+                  fontSize: FontSize(16.0),
+                  lineHeight: LineHeight(1.6),
+                  fontFamily: 'Inter',
+                ),
+              },
+            ),
           ),
         );
       } else {

@@ -31,8 +31,8 @@ class BookCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Cover
-          AspectRatio(
-            aspectRatio: DesignSystem.bookCoverAspectRatio,
+          Expanded(
+            flex: 3,
             child: Container(
               width: double.infinity,
               decoration: BoxDecoration(
@@ -58,9 +58,11 @@ class BookCard extends StatelessWidget {
           ),
           // Content
           Expanded(
+            flex: 2,
             child: Padding(
               padding: const EdgeInsets.all(DesignSystem.spacingMD),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -82,7 +84,7 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   if (progress > 0) ...[
-                    const Spacer(),
+                    const SizedBox(height: DesignSystem.spacingSM),
                     // Progress Bar
                     Container(
                       height: 8,
