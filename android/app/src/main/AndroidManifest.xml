@@ -34,4 +34,7 @@
     <!-- Permissions for file access -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS"/>
+    
+    <!-- Permission for internet access (required for Google Fonts) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
 </manifest>

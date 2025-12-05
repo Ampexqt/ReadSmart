@@ -5,6 +5,7 @@ import 'package:epub_view/epub_view.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../theme/design_system.dart';
 import '../providers/theme_provider.dart';
@@ -37,6 +38,10 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
   // Bookmark state
   bool _isBookmarked = false;
 
+  // Text selection debounce
+  Timer? _selectionDebounceTimer;
+  String? _lastSelectedText;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -68,26 +73,26 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
     try {
       final isEpub = book.filePath!.toLowerCase().endsWith('.epub');
 
-      if (kIsWeb) {
-        // Web: Load bytes from storage
+      // Always load from storage for EPUB files (cross-platform consistency)
+      if (isEpub) {
         final bytes = await _storageService.loadBookFile(book.filePath!);
         if (bytes != null) {
           _fileBytes = Uint8List.fromList(bytes);
-
-          if (isEpub) {
-            // Parse EPUB
-            _epubBook = await EpubReader.readBook(_fileBytes!);
-            _allChapters = _flattenChapters(_epubBook!.Chapters ?? []);
-          }
+          _epubBook = await EpubReader.readBook(_fileBytes!);
+          _allChapters = _flattenChapters(_epubBook!.Chapters ?? []);
+        } else {
+          print('EPUB file not found in storage: ${book.filePath}');
         }
       } else {
-        // Mobile: Use file path
-        if (isEpub) {
-          final file = File(book.filePath!);
-          final bytes = await file.readAsBytes();
-          _epubBook = await EpubReader.readBook(bytes);
-          _allChapters = _flattenChapters(_epubBook!.Chapters ?? []);
+        // PDF handling
+        if (kIsWeb) {
+          // Web: Load bytes from storage
+          final bytes = await _storageService.loadBookFile(book.filePath!);
+          if (bytes != null) {
+            _fileBytes = Uint8List.fromList(bytes);
+          }
         }
+        // For PDF on mobile, we still use file path directly in the viewer
       }
     } catch (e) {
       print('Error loading book: $e');
@@ -191,6 +196,22 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
   }
 
   void _handleTextSelection(String selectedText) {
+    // Cancel any existing timer
+    _selectionDebounceTimer?.cancel();
+
+    // Store the selected text
+    _lastSelectedText = selectedText;
+
+    // Wait for user to finish selecting (800ms after last selection change)
+    _selectionDebounceTimer = Timer(const Duration(milliseconds: 800), () {
+      // Only show dialog if text is long enough and hasn't changed
+      if (_lastSelectedText != null && _lastSelectedText!.length >= 10) {
+        _showHighlightDialog(_lastSelectedText!);
+      }
+    });
+  }
+
+  void _showHighlightDialog(String selectedText) {
     // Debounce to prevent showing dialog on every character selection
     if (selectedText.length < 10) return;
 
@@ -230,6 +251,14 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _selectionDebounceTimer?.cancel();
+    _epubScrollController.dispose();
+    _pdfController.dispose();
+    super.dispose();
   }
 
   @override
@@ -511,7 +540,9 @@ class _BookReaderScreenState extends State<BookReaderScreen> {
                   "body": Style(
                     fontSize: FontSize(18.0),
                     lineHeight: LineHeight(1.8),
-                    fontFamily: 'Inter',
+                    fontFamily: context
+                        .watch<ThemeProvider>()
+                        .getFontFamilyName(),
                     color: isDark
                         ? DesignSystem.darkText
                         : DesignSystem.primaryBlack,
