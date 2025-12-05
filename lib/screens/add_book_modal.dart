@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import '../theme/design_system.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/brutal_modal.dart';
@@ -46,28 +47,33 @@ class _AddBookModalState extends State<AddBookModal> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['epub'],
-        withData: true, // Important for web: loads file bytes
+        withData: true, // Important: loads file bytes for all platforms
       );
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.single;
         final fileName = file.name;
 
-        // On web, path is null, so we use bytes
-        // On mobile, path might be available
-        if (file.bytes != null) {
-          // Save file bytes to storage (for web compatibility)
-          await _storageService.saveBookFile(fileName, file.bytes!);
+        // Always use bytes for consistency across web and mobile
+        List<int>? fileBytes = file.bytes;
+
+        // If bytes not available, try reading from path (mobile fallback)
+        if (fileBytes == null && file.path != null) {
+          try {
+            final fileData = await File(file.path!).readAsBytes();
+            fileBytes = fileData;
+          } catch (e) {
+            print('Error reading file from path: $e');
+          }
+        }
+
+        if (fileBytes != null) {
+          // Save file bytes to storage (works for both web and mobile)
+          await _storageService.saveBookFile(fileName, fileBytes);
 
           setState(() {
-            // Use fileName as the identifier for web compatibility
+            // Use fileName as the identifier for cross-platform compatibility
             _selectedFilePath = fileName;
-            _selectedFileName = fileName;
-          });
-        } else if (file.path != null) {
-          // Fallback for mobile platforms where path is available
-          setState(() {
-            _selectedFilePath = file.path;
             _selectedFileName = fileName;
           });
         } else {
